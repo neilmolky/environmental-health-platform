@@ -33,7 +33,7 @@ jobs:
       - name: Run Global Code & Commit Message Linters
         uses: pre-commit/action@v3.0.1
         with:
-          extra_args: --all-files --stages commit-msg
+          extra_args: --all-files
 
       - name: Run Test Suite
         run: |

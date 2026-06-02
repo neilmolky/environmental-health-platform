@@ -12,7 +12,7 @@ COPY backend/pyproject.toml backend/
 
 # OPTIMIZATION: Extract ONLY backend packages out of the global lockfile
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --no-install-workspace --package backend
+    uv sync --frozen --no-dev --no-install-workspace --package backend
 
 # Copy source code
 COPY backend/ /app/backend/
