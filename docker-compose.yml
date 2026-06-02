@@ -1,19 +1,20 @@
 version: "3.8"
 
 volumes:
+  # dedicated volumn to store the uv cache for the whole project including lockfile
+  # this enables updating project dependencies inside the dev container
   uv-cache:
-  # this dedicated volumn stores the uv cache for the whole project including lockfile
+  # emulated storage volumes for your cloud provider of choice
   aws-data:
   azure-data:
-  workspace-data:
 
 services:
   backend:
     build:
-      context: ./backend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: backend/Dockerfile
     volumes:
-      - workspace-data:/workspace
+      - .:/workspace
       - uv-cache:/root/.cache/uv
     environment:
       - PYTHONUNBUFFERED=1
@@ -23,18 +24,30 @@ services:
 
   api:
     build:
-      context: ./api
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: api/Dockerfile
     ports:
       - "8000:8000"
     volumes:
-      - workspace-data:/workspace
+      - .:/workspace
       - uv-cache:/root/.cache/uv
     working_dir: /workspace
     environment:
       - STORAGE_BACKEND=aws
 
-  # --- STORAGE EMULATOR PROFILES
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    ports:
+      - "2718:2718"
+    volumes:
+      - .:/workspace
+      - uv-cache:/root/.cache/uv
+    working_dir: /workspace
+
+  
+  # --- STORAGE EMULATOR PROFILES ---
   minio:
     image: minio/minio:latest
     profiles: ["aws"]
