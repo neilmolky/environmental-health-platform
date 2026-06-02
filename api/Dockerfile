@@ -7,7 +7,7 @@ COPY api/pyproject.toml api/
 
 # OPTIMIZATION: Extract ONLY backend packages out of the global lockfile
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --no-install-workspace --package api
+    uv sync --frozen --no-dev --no-install-workspace --package api
 
 # Copy source code
 COPY api/ /app/api/

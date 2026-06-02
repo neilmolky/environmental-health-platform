@@ -11,5 +11,3 @@ dependencies = [
     "polars>=1.41.2",
     "uvicorn>=0.48.0",
 ]
-
-
