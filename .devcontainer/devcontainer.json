@@ -5,26 +5,41 @@
   ],
   "service": "backend",
   "workspaceFolder": "/workspace",
-  "initializeCommand": "echo 'Initializing DevContainer build context in:' && pwd",
+  "runServices": [
+    "backend",
+    "minio",
+    "azurite"
+  ],
   "customizations": {
     "vscode": {
       "extensions": [
         "ms-python.python",
-        "ms-python.vscode-pylance",
         "charliermarsh.ruff",
-        "marimo-team.marimo-vscode"
+        "marimo-team.marimo-vscode",
+        "astral-sh.ty"
       ],
       "settings": {
         "python.defaultInterpreterPath": "/workspace/.venv/bin/python",
-        "python.analysis.importFormat": "absolute",
         "python.testing.pytestEnabled": true,
         "python.testing.pytestArgs": [
           "backend",
-          "api"
-        ]
+          "api",
+          "frontend"
+        ],
+        
+        "python.languageServer": "None",
+
+        // FORCE RUFF TO ACT AS THE FORMATTER IN THE UI
+        "[python]": {
+          "editor.defaultFormatter": "charliermarsh.ruff",
+          "editor.formatOnSave": true,
+          "editor.codeActionsOnSave": {
+            "source.organizeImports": "explicit"
+          }
+        }
       }
-    }
-  },
-  "remoteUser": "root",
-  "postCreateCommand": "uv sync --frozen"
+    },
+    "remoteUser": "root",
+    "postCreateCommand": "uv sync --frozen"
+  }
 }

@@ -1,3 +1,21 @@
+## 💻 Local Environment Prerequisites
+
+To run this platform inside its optimized multi-container development environment, your local host machine must satisfy the following system requirements:
+
+1. **Docker Engine**: Docker must be installed and running on your host machine.
+2. **VS Code**: Install the from Microsoft. 
+3. **VS Code Extensions**: Ensure you have the official **Dev Containers** extension installed on your host machine.
+
+### Launching the Workspace
+
+Once your host machine matches the steps above:
+1. Clone this repository
+2. Open the directory in your IDE
+3. Press `F1` or `Ctrl+Shift+P` and choose **Dev Containers: Reopen in Container**.
+4. The extension will automatically parse your local configurations, spin up the active background services (MinIO and Azurite), and install all required depencencies. Within the dev container you can run pytest etc.
+
+
+
 # Contributing Guidelines
 
 Thank you for contributing to the Environmental Public Health Platform! To maintain structural integrity and a linear git history, all developers must adhere to the following code quality and commit standards.

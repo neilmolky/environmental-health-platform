@@ -24,13 +24,12 @@ repos:
         types: [python]
         stages: [pre-commit]
       
-      - id: mypy
-        name: mypy type check
-        entry: uv run mypy backend/ api/ frontend/
+      - id: ty-check
+        name: ty type check
+        entry: uv run ty check
         language: system
         types: [python]
         stages: [pre-commit]
-        # Prevents running mypy separately on every individual file change
         pass_filenames: false
 
   # 3. Text & Configuration Hygiene Checks (Managed automatically by pre-commit)
