@@ -40,6 +40,6 @@
       }
     },
     "remoteUser": "root",
-    "postCreateCommand": "uv sync --frozen"
+    "postCreateCommand": "uv sync --frozen --all-packages"
   }
 }

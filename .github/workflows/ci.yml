@@ -27,7 +27,7 @@ jobs:
         run: uv python pin 3.13
 
       - name: Synchronize and verify workspace lockfile
-        run: uv sync --frozen
+        run: uv sync --frozen --all-packages
 
       - name: Run pre-commit checks
         uses: pre-commit/action@v3.0.1
