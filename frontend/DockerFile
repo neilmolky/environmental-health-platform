@@ -1,0 +1,27 @@
+FROM ghcr.io/astral-sh/uv:python3.13 AS builder
+ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy
+WORKDIR /app
+
+# Ensure native geospatial dependencies are present for building wheels if needed
+RUN apk add --no-cache gdal-dev geos-dev proj-dev gcc multipath-tools build-base musl-dev
+
+COPY pyproject.toml uv.lock ./
+COPY frontend/pyproject.toml frontend/
+
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-install-workspace --package frontend
+
+FROM python:3.11-alpine
+WORKDIR /app
+
+# Install runtime geospatial dynamic libraries
+RUN apk add --no-cache gdal geos proj
+
+COPY --from=builder /app/.venv /app/.venv
+COPY frontend/ /app/frontend/
+
+ENV PATH="/app/.venv/bin:$PATH"
+ENV PYTHONUNBUFFERED=1
+
+EXPOSE 2718
+CMD ["marimo", "run", "frontend/health_analysis.py", "--host", "0.0.0.0", "--port", "2718"]

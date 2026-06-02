@@ -1,0 +1,56 @@
+version: "3.8"
+
+volumes:
+  uv-cache:
+  # this dedicated volumn stores the uv cache for the whole project including lockfile
+  aws-data:
+  azure-data:
+  workspace-data:
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    volumes:
+      - workspace-data:/workspace
+      - uv-cache:/root/.cache/uv
+    environment:
+      - PYTHONUNBUFFERED=1
+      - STORAGE_BACKEND=aws
+    working_dir: /workspace
+    command: sleep infinity
+
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - workspace-data:/workspace
+      - uv-cache:/root/.cache/uv
+    working_dir: /workspace
+    environment:
+      - STORAGE_BACKEND=aws
+
+  # --- STORAGE EMULATOR PROFILES
+  minio:
+    image: minio/minio:latest
+    profiles: ["aws"]
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - aws-data:/data
+    command: server /data --console-address ":9001"
+
+  azurite:
+    image: ://microsoft.com
+    profiles: ["azure"]
+    ports:
+      - "10000:10000"
+      - "10001:10001"
+      - "10002:10002"
+    volumes:
+      - azure-data:/data

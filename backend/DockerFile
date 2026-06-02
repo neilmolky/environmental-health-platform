@@ -1,0 +1,25 @@
+# Synthesize dependencies in a clean build stage
+FROM ghcr.io/astral-sh/uv:python3.13 AS builder
+ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy
+WORKDIR /app
+
+# Copy workspace configurations
+COPY pyproject.toml uv.lock ./
+COPY backend/pyproject.toml backend/
+
+# Synchronize dependencies for the backend package
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-install-workspace --package backend
+
+# Final lightweight runtime image
+FROM python:3.11-alpine
+WORKDIR /app
+
+# Copy virtual environment and source code
+COPY --from=builder /app/.venv /app/.venv
+COPY backend/ /app/backend/
+
+ENV PATH="/app/.venv/bin:$PATH"
+ENV PYTHONUNBUFFERED=1
+
+CMD ["prefect", "worker", "start", "--pool", "uk-health-pool"]
