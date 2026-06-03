@@ -7,7 +7,7 @@ import fsspec
 
 def get_storage_client() -> fsspec.AbstractFileSystem:
     """Factory function resolving the client based on runtime environment."""
-    backend_type = os.getenv("STORAGE_BACKEND", "aws").lower()
+    backend_type = os.getenv("STORAGE_BACKEND", "file").lower()
 
     match backend_type:
         case "aws":
@@ -27,6 +27,9 @@ def get_storage_client() -> fsspec.AbstractFileSystem:
                     "AZURE_STORAGE_CONNECTION_STRING",
                 ),
             )
+        case "file":
+            # generally used for local testing
+            return fsspec.filesystem("file")
 
         case other:
             raise NotImplementedError(f"STORAGE_BACKEND: {other} is not implemented")

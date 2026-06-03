@@ -36,6 +36,7 @@ We enforce the **Conventional Commits** specification. Every commit message must
 * `docs`: Documentation-only adjustments (e.g., updating this guide or a README).
 * `test`: Adding missing tests or correcting existing test suites.
 * `chore`: Maintenance, updating dependency locks, or general file housekeeping.
+* `revert`: Remove a change in order to unblock future development
 
 ### Allowed Scopes
 * `infra`: Core container environments, dev-containers, or networks.
