@@ -2,7 +2,8 @@ FROM ghcr.io/astral-sh/uv:python3.13-trixie
 WORKDIR /app
 
 # Install runtime utilities natively
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get update && apt-get upgrade -y \
+    && apt-get install -y --no-install-recommends \
     git curl ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
