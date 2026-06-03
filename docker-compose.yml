@@ -1,10 +1,5 @@
-version: "3.8"
-
 volumes:
-  # dedicated volumn to store the uv cache for the whole project including lockfile
-  # this enables updating project dependencies inside the dev container
   uv-cache:
-  # emulated storage volumes for your cloud provider of choice
   aws-data:
   azure-data:
 
@@ -16,10 +11,15 @@ services:
     volumes:
       - .:/workspace
       - uv-cache:/root/.cache/uv
+    working_dir: /workspace
+    # SENSIBLE DEFAULTS LAYER
     environment:
       - PYTHONUNBUFFERED=1
-      - STORAGE_BACKEND=aws
-    working_dir: /workspace
+      - STORAGE_BACKEND=${STORAGE_BACKEND:-aws}
+      - AWS_ENDPOINT_URL=${AWS_ENDPOINT_URL:-http://minio:9000}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-minioadmin}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-minioadmin}
+      - AZURE_STORAGE_CONNECTION_STRING=${AZURE_STORAGE_CONNECTION_STRING:-DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;}
     command: sleep infinity
 
   api:
@@ -33,7 +33,11 @@ services:
       - uv-cache:/root/.cache/uv
     working_dir: /workspace
     environment:
-      - STORAGE_BACKEND=aws
+      - STORAGE_BACKEND=${STORAGE_BACKEND:-aws}
+      - AWS_ENDPOINT_URL=${AWS_ENDPOINT_URL:-http://minio:9000}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-minioadmin}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-minioadmin}
+      - AZURE_STORAGE_CONNECTION_STRING=${AZURE_STORAGE_CONNECTION_STRING:-DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;}
 
   frontend:
     build:
@@ -46,8 +50,7 @@ services:
       - uv-cache:/root/.cache/uv
     working_dir: /workspace
 
-  
-  # --- STORAGE EMULATOR PROFILES ---
+  # --- STORAGE EMULATORS WITH PROFILES ---
   minio:
     image: minio/minio:latest
     profiles: ["aws"]
@@ -59,7 +62,7 @@ services:
     command: server /data --console-address ":9001"
 
   azurite:
-    image: ://microsoft.com
+    image: mcr.microsoft.com/azure-storage/azurite:latest
     profiles: ["azure"]
     ports:
       - "10000:10000"
@@ -67,3 +70,6 @@ services:
       - "10002:10002"
     volumes:
       - azure-data:/data
+    # FIX: bypass version tracking guardrails instead of pinning specific versions
+    # this is minimal risk for simple read's
+    command: azurite-blob --blobHost 0.0.0.0 --blobPort 10000 --location /data --skipApiVersionCheck

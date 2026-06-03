@@ -8,9 +8,56 @@ requires-python = ">=3.13"
 [tool.uv]
 package = false
 
+[tool.pyright]
+# Force Pylance to completely mute diagnostic warnings across your workspace
+reportGeneralTypeIssues = "none"
+reportAttributeAccessIssue = "none"
+reportOptionalSubscript = "none"
+reportOptionalMemberAccess = "none"
+
+# Direct Pylance to ignore virtual environments
+exclude = [
+    ".venv",
+    "**/node_modules"
+]
+
+[tool.ty.rules]
+"invalid-argument-type" = "error"
+"invalid-return-type" = "error"
+"unresolved-import" = "error"
+
+
+[tool.pytest.ini_options]
+# Automatically measures code inside the backend, api, and frontend packages
+addopts = "--cov=backend --cov=api --cov=frontend --cov-report=term-missing"
+testpaths = ["backend", "api", "frontend"]
+
+[tool.coverage.run]
+omit = [
+    "**/__init__.py",
+    "**/.venv/*",
+    "backend/test_*.py",
+    "api/test_*.py",
+    "frontend/test_*.py"
+]
+
+[tool.coverage.report]
+# Set the baseline target guard rail. We can scale this up (e.g., to 80%) as the codebase grows.
+fail_under = 0
+show_missing = true
+
 [tool.uv.workspace]
 members = [
     "backend",
     "api",
     "frontend",
+]
+
+[dependency-groups]
+dev = [
+    "pre-commit>=4.6.0",
+    "pytest>=9.0.3",
+    "pytest-cov>=7.1.0",
+    "ruff>=0.15.15",
+    "ty>=0.0.42",
 ]

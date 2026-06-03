@@ -1,0 +1,48 @@
+repos:
+  # 1. Enforce Conventional Commit Message Standards
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v3.6.0
+    hooks:
+      - id: conventional-pre-commit
+        stages: [commit-msg]
+        args: [--scopes, 'infra,backend,api,frontend', --verbose, chore, ci, docs, feat, fix, refactor, test, style, revert]
+
+  # 2. Automated Python Code Quality Guard (Ruff)
+  - repo: local
+    hooks:
+      - id: ruff-check
+        name: ruff check
+        entry: uv run ruff check --fix backend/ api/ frontend/
+        language: system
+        types: [python]
+        stages: [pre-commit]
+
+      - id: ruff-format
+        name: ruff format
+        entry: uv run ruff format backend/ api/ frontend/
+        language: system
+        types: [python]
+        stages: [pre-commit]
+      
+      - id: ty-check
+        name: ty type check
+        entry: uv run ty check
+        language: system
+        types: [python]
+        stages: [pre-commit]
+        pass_filenames: false
+
+  # 3. Text & Configuration Hygiene Checks (Managed automatically by pre-commit)
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-yaml
+        stages: [pre-commit]
+      - id: check-toml
+        stages: [pre-commit]
+      - id: end-of-file-fixer
+        stages: [pre-commit]
+      - id: detect-private-key
+        stages: [pre-commit]
+      - id: name-tests-test
+        stages: [pre-commit]

@@ -12,7 +12,7 @@ COPY pyproject.toml uv.lock ./
 COPY frontend/pyproject.toml frontend/
 
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --no-install-workspace --package frontend
+    uv sync --frozen --no-dev --no-install-workspace --package frontend
 
 # Stage 2: Clean, optimized Frontend Runtime
 FROM python:3.13-slim-trixie
