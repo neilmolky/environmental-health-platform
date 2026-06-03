@@ -34,16 +34,6 @@ jobs:
         with:
           extra_args: --all-files
       
-      - name: Run Test Suite with Coverage Tracking
-        run: |
-          uv run pytest --cov-report=xml
-        env:
-          STORAGE_BACKEND: aws
-          AWS_ENDPOINT_URL: http://localhost:9000
-          AWS_ACCESS_KEY_ID: minioadmin
-          AWS_SECRET_ACCESS_KEY: minioadmin
-          AZURE_STORAGE_CONNECTION_STRING: "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://localhost:10000/devstoreaccount1;"
-
       - name: Run Test Suite with Coverage
         run: |
           uv run pytest --cov-report=xml
