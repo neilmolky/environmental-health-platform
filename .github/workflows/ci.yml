@@ -34,9 +34,18 @@ jobs:
         with:
           extra_args: --all-files
       
-      - name: Run Test Suite with Coverage
+      - name: Run Integration Tests
+        env:
+          MET_OFFICE_CLIENT_SECRET: ${{ secrets.MET_OFFICE_CLIENT_SECRET }}
         run: |
-          uv run pytest --cov-report=xml
+          uv run pytest -m integration
+
+      - name: Run Test Suite with Coverage
+        # TODO: sepperate mocks from integration tests, only run mocks with coverage 
+        env:
+          MET_OFFICE_CLIENT_SECRET: ${{ secrets.MET_OFFICE_CLIENT_SECRET }}
+        run: |
+          uv run pytest -m 'not integration' --cov-report=xml
 
       - name: Generate PR Coverage Comment
         uses: py-cov-action/python-coverage-comment-action@v3

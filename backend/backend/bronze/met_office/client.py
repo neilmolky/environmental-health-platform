@@ -1,38 +1,16 @@
+import os
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager, contextmanager
 from datetime import datetime
 from typing import Generator
 
 import httpx
-from pydantic import (
-    BaseModel,
-    Field,
-    HttpUrl,
-    SecretStr,
-)
+from pydantic import BaseModel, Field, HttpUrl, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from utils.pydantic_utils import One, Some
 
-MOCK_URL = "http:localhost:8080"
-LIVE_URL = "https://datahub.metoffice.gov.uk"
-
-
-class _GlobalSettings(BaseSettings):
-    """Private config model.
-
-    use met_office_client_factory() to instantiate this model.
-
-    provides utilities to create a httpx.client for the service.
-
-    Servic can either be the mock service, or live api.
-    """
-
-    model_config = SettingsConfigDict(
-        env_file=".env",  # Reads from a local .env file if present. register an application to use
-        env_file_encoding="utf-8",
-        extra="ignore",
-    )
-    use_mock_services: bool = Field(False, validation_alias="USE_MOCK_SERVICES")
+MET_OFFICE_LIVE_URL = "https://data.hub.api.metoffice.gov.uk"
+MET_OFFICE_USER_URL = "https://datahub.metoffice.gov.uk"
 
 
 class _MetOfficeClientConfig(BaseSettings):
@@ -52,11 +30,12 @@ class _MetOfficeClientConfig(BaseSettings):
     )
     secret: SecretStr = Field(..., validation_alias="MET_OFFICE_CLIENT_SECRET")
     base_url: HttpUrl = Field(
-        LIVE_URL, validation_alias="MET_OFFICE_BASE_URL", validate_default=True
+        MET_OFFICE_LIVE_URL,
+        validation_alias="MET_OFFICE_MOCK_URL",
+        validate_default=True,
     )
 
-    def _authenticate_request(self, request: httpx.Request) -> httpx.Request:
-        """Private auth flow method."""
+    def add_auth_header(self, request: httpx.Request) -> httpx.Request:
         request.headers["apikey"] = self.secret.get_secret_value()
         return request
 
@@ -64,7 +43,7 @@ class _MetOfficeClientConfig(BaseSettings):
     async def async_api_client(self) -> AsyncGenerator[httpx.AsyncClient]:
         async with httpx.AsyncClient(
             base_url=self.base_url.encoded_string(),
-            auth=self._authenticate_request,
+            auth=self.add_auth_header,
             headers={
                 "accept": "application/json",
             },
@@ -75,7 +54,7 @@ class _MetOfficeClientConfig(BaseSettings):
     def api_client(self) -> Generator[httpx.Client]:
         with httpx.Client(
             base_url=self.base_url.encoded_string(),
-            auth=self._authenticate_request,
+            auth=self.add_auth_header,
             headers={
                 "accept": "application/json",
             },
@@ -85,11 +64,9 @@ class _MetOfficeClientConfig(BaseSettings):
 
 def met_office_client_factory(use_mock: bool | None = None) -> _MetOfficeClientConfig:
     if use_mock is None:
-        use_mock = _GlobalSettings().use_mock_services
+        use_mock = os.getenv("MET_OFFICE_MOCK_URL") is not None
     if use_mock:
-        return _MetOfficeClientConfig.model_construct(
-            met_office_base_url=MOCK_URL, met_office_client_secret="apikey"
-        )
+        return _MetOfficeClientConfig.model_construct(met_office_client_secret="apikey")
     return _MetOfficeClientConfig()
 
 
