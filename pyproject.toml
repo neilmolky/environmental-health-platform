@@ -54,6 +54,7 @@ fail_under = 50
 show_missing = true
 
 [tool.coverage.run]
+relative_files = true
 omit = [
     "**/__init__.py",
     "**/.venv/*",
