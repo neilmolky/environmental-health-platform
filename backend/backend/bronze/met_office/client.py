@@ -66,7 +66,9 @@ def met_office_client_factory(use_mock: bool | None = None) -> _MetOfficeClientC
     if use_mock is None:
         use_mock = os.getenv("MET_OFFICE_MOCK_URL") is not None
     if use_mock:
-        return _MetOfficeClientConfig.model_construct(met_office_client_secret="apikey")
+        return _MetOfficeClientConfig.model_validate(
+            {"MET_OFFICE_CLIENT_SECRET": "apikey"}
+        )
     return _MetOfficeClientConfig()
 
 

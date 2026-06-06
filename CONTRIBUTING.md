@@ -4,7 +4,6 @@ The easiest way to begin development is to make use of the optimized multi-conta
 * pre-commit-hooks that run linting, type checking and reject commit messages so your commits don't fail in ci.
 * vscode settings for syntax highlighting and linting that will be consistent with ci.
 * cloud storage emulation for local, end to end integration checks for your cloud provider of choice
-* vscode settings for syntax highlighting and linting that will be consistent with ci.
 
 To set up the dev environment, your local host machine must satisfy the following system requirements:
 

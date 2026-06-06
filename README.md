@@ -7,7 +7,7 @@ This project is intended to showcase a Containerised Data Platform. The design i
 * **Data Analysts**: users of the platform may want to explore the available data without downloading it. `frontend/` contains marimo notebooks and tools that allow users to analyse the data interactively, in their browser. 
 
 ## Use Case
-Climate data is loaded into a data lake and transformed to enable health driven analytics. 
+Climate data is loaded into a data lake and transformed to enable health-driven analytics. 
 
 # 💻 Local Environment Prerequisites
 

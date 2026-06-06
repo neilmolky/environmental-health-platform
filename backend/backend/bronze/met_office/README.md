@@ -24,9 +24,8 @@ To protect our API limits, minimize network overhead, and maintain zero runtime 
 
 1. **Credential Provisioning**: A developer registers to access the API on the [Met Office Weather DataHub](https://datahub.metoffice.gov.uk/docs/o/category/observations/type/land-observations/api-documentation#overview) and exports the application keys as environment variables.
     ```text
-    MET_OFFICE_BASE_URL=https://data.hub.api.metoffice.gov.uk
-    MET_OFFICE_CLIENT_ID=...
-    MET_OFFICE_CLIENT_SECRET=...
+    MET_OFFICE_CLIENT_SECRET=...  # Required: Your API key/secret
+    MET_OFFICE_MOCK_URL=...       # Optional: Override base URL (e.g., for mock server)
     ```
 2. **Spatial Location Registration**: When adding target tracking coordinates for a new urban center, the developer inserts the coordinates into the local orchestration engine.
 3. **Static Resolution**: The developer utility script makes a single-shot request to the `/observation-land/1/nearest` API endpoint to find the closest active weather station and its unique `geohash`.
@@ -38,12 +37,12 @@ To protect our API limits, minimize network overhead, and maintain zero runtime 
 
 ## 🔐 Environment Configuration
 
-To connect this platform to the live UK Met Office network, export your application keys as local environment variables, configure thes in github as secrets, or save to a .env file locally. For instance:
+To connect this platform to the live UK Met Office network, export your application keys as local environment variables, configure these in GitHub as secrets, or save to a .env file locally. For instance:
 
 ```bash
-export MET_OFFICE_CLIENT_ID="your_client_id_here"
 export MET_OFFICE_CLIENT_SECRET="your_client_secret_here"
-export MET_OFFICE_BASE_URL="https://data.hub.api.metoffice.gov.uk"
+# Optional: Override the base URL (defaults to live Met Office API)
+export MET_OFFICE_MOCK_URL="https://data.hub.api.metoffice.gov.uk"
 ```
 
 ---

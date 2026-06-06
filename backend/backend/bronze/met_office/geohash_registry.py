@@ -1,3 +1,4 @@
+import os
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Self
@@ -89,9 +90,21 @@ class MetOfficeLandObservationRegistry(BaseModel):
     def save_to_disk(self, parent_dir: Path | str | None = None) -> None:
         """Atomically serialises the validated registry structure back to a file layout."""
         path = self.registry_path(parent_dir)
-        with open(path, "w") as f:
-            # Writes pretty-printed, standardized JSON for clean Git diff trackability
-            f.write(self.model_dump_json(indent=2))
+        # Write to a temporary file in the same directory
+        temp_path = path.with_suffix(".tmp")
+        try:
+            with open(temp_path, "w") as f:
+                # Writes pretty-printed, standardized JSON for clean Git diff trackability
+                f.write(self.model_dump_json(indent=2))
+                f.flush()
+                os.fsync(f.fileno())
+            # Atomically replace the target file
+            os.replace(temp_path, path)
+        except Exception:
+            # Clean up temp file on error
+            if temp_path.exists():
+                temp_path.unlink()
+            raise
 
     def update_all_uncached_items(self, client: httpx.Client) -> None:
         """Iterates through your items, upgrading uncached entries via the network client."""

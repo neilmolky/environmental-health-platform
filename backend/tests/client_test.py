@@ -29,8 +29,8 @@ class TestMetOfficeClient:
         except ValidationError:
             pytest.fail(
                 "Missing live infrastructure credentials! "
-                "To run this test, set MET_OFFICE_CLIENT_ID, MET_OFFICE_CLIENT_SECRET, MET_OFFICE_BASE_URL. "
-                f"Register for cretentials here {MET_OFFICE_LIVE_URL}. "
+                "To run this test, set MET_OFFICE_CLIENT_SECRET. "
+                f"Register for credentials here {MET_OFFICE_LIVE_URL}. "
             )
 
     @pytest.fixture
@@ -59,5 +59,6 @@ class TestMetOfficeClient:
             .model_validate_json(get_observation(client, nearest.geohash))
             .root
         )
+        assert len(observation) > 0
         for item in observation:
             assert item.datetime
