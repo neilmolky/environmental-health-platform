@@ -2,7 +2,6 @@ import os
 import pathlib
 
 import pytest
-
 from backend.storage import get_storage_client
 
 

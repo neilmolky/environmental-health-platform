@@ -14,8 +14,8 @@ Climate data is loaded into a data lake and transformed to enable health driven 
 To run the whole platform the host machine must satisfy the following system requirements:
 
 1. **Git**: Git must be installed on your host machine.
-1. **Docker Engine**: Docker must be installed and running on your host machine.
-2. **Execution**:
+2. **Docker Engine**: Docker must be installed and running on your host machine.
+3. **Execution**:
 ```shell
 git clone https://github.com/neilmolky/environmental-health-platform
 cd environmental-health-platform 

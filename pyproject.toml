@@ -8,18 +8,19 @@ requires-python = ">=3.13"
 [tool.uv]
 package = false
 
-[tool.pyright]
-# Force Pylance to completely mute diagnostic warnings across your workspace
-reportGeneralTypeIssues = "none"
-reportAttributeAccessIssue = "none"
-reportOptionalSubscript = "none"
-reportOptionalMemberAccess = "none"
-
-# Direct Pylance to ignore virtual environments
-exclude = [
-    ".venv",
-    "**/node_modules"
+[tool.uv.workspace]
+# Maps all structural nodes explicitly
+members = [
+    "backend",
+    "api",
+    "frontend",
+    "utils",
+    "mock_services",
 ]
+
+[tool.ty.environment]
+# Points ty directly to the unified root virtual environment site-packages
+python = "./.venv/bin/python"
 
 [tool.ty.rules]
 "invalid-argument-type" = "error"
@@ -28,29 +29,36 @@ exclude = [
 
 
 [tool.pytest.ini_options]
-# Automatically measures code inside the backend, api, and frontend packages
-addopts = "--cov=backend --cov=api --cov=frontend --cov-report=term-missing"
-testpaths = ["backend", "api", "frontend"]
+addopts = """
+    --cov=backend/backend 
+    --cov=api/api 
+    --cov=frontend/frontend 
+    --cov=utils/utils 
+    --cov=mock_services/mock_services  
+    --cov-report=term-missing
+"""
+markers = [
+    "integration: marks tests as heavy integration or live network smoke tests"
+]
+testpaths = [
+    "backend/tests",
+    "api/tests",
+    "frontend/tests",
+    "utils/tests",
+    "mock_services/tests"
+]
+
+[tool.coverage.report]
+#  Enforces test coverage, set initially to be more conservative at 50%, increase iteratively over time
+fail_under = 50
+show_missing = true
 
 [tool.coverage.run]
 omit = [
     "**/__init__.py",
     "**/.venv/*",
-    "backend/test_*.py",
-    "api/test_*.py",
-    "frontend/test_*.py"
-]
-
-[tool.coverage.report]
-# Set the baseline target guard rail. We can scale this up (e.g., to 80%) as the codebase grows.
-fail_under = 0
-show_missing = true
-
-[tool.uv.workspace]
-members = [
-    "backend",
-    "api",
-    "frontend",
+    "**/tests/**",
+    "**/test_*.py"
 ]
 
 [dependency-groups]
@@ -58,6 +66,6 @@ dev = [
     "pre-commit>=4.6.0",
     "pytest>=9.0.3",
     "pytest-cov>=7.1.0",
-    "ruff>=0.15.15",
+    "ruff>=0.15.16",
     "ty>=0.0.42",
 ]
