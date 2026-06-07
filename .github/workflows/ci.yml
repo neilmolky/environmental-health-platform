@@ -63,7 +63,7 @@ jobs:
 
       # Compile image natively using your optimized Debian Trixie single-stage image
       - name: Build Backend Image for Scanning
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: backend/Dockerfile
