@@ -25,7 +25,7 @@ class TestMetOfficeMockApi:
         Endpoints should return 401 Unauthorized if the header is missing.
         """
         response: httpx.Response = client.get(
-            "/observation-land/1/nearest?latitude=51.5074&longitude=-0.1278"
+            "/observation-land/1/nearest?lat=51.5074&lon=-0.1278"
         )
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
         assert response.json()["detail"] == "Not authenticated"
