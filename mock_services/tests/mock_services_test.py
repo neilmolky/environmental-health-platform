@@ -75,7 +75,7 @@ class TestMetOfficeMockApi:
         headers = {"apikey": VALID_API_KEY}
 
         # Target an existing geohash in your initialized DB
-        valid_geohash = list(MOCK_OBSERVATION_DB.keys())[0]
+        valid_geohash = next(iter(MOCK_OBSERVATION_DB.keys()))
 
         response: httpx.Response = client.get(
             f"/observation-land/1/{valid_geohash}", headers=headers
