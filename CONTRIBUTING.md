@@ -1,6 +1,11 @@
-## 💻 Local Environment Prerequisites
+## 💻 Local Development Environment
 
-To run this platform inside its optimized multi-container development environment, your local host machine must satisfy the following system requirements:
+The easiest way to begin development is to make use of the optimized multi-container development environment defined in `.devcontainer/devcontainer.json`, This environment can be set up to provide developer tools consistent with the ci checks including:
+* pre-commit-hooks that run linting, type checking and reject commit messages so your commits don't fail in ci.
+* vscode settings for syntax highlighting and linting that will be consistent with ci.
+* cloud storage emulation for local, end to end integration checks for your cloud provider of choice
+
+To set up the dev environment, your local host machine must satisfy the following system requirements:
 
 1. **Docker Engine**: Docker must be installed and running on your host machine.
 2. **VS Code**: Install the from Microsoft. 
@@ -12,34 +17,53 @@ Once your host machine matches the steps above:
 1. Clone this repository
 2. Open the directory in your IDE
 3. Press `F1` or `Ctrl+Shift+P` and choose **Dev Containers: Reopen in Container**.
-4. The extension will automatically parse your local configurations, spin up the active background services (MinIO and Azurite), and install all required depencencies. Within the dev container you can run pytest etc.
+4. You should be able to begin development immediately. All the infrastructure, dependencies, tool integrations will be available. 
+5. To view the services: Look at the "Ports" tab at the bottom of VS Code to see all running services and click the globe icon to open them in your browser. The dev container reloads your code changes through the uvicorn server. 
 
+---
 
+# Tools
+
+This project was built with an oppinion on tools. The choices reflect the following preferences. 
+- **Learning experimental tools**: Tools like ty and marimo are novel and perhaps unconventional choices that users might be less familiar with. A project like this is meant to be somewhere you can experiment and play with tools that interest you.
+- **Cloud agnostic and accessible**: Modern data engineering is in the cloud, and sadly fear arround the costs can feel like a barrier to learning and developing important skills. However, cloud is just infrastructure, a platform, or a service that, by design, we connect to exclusively via a network. In theory, we can emulate this in containers and in doing so, learn the essential concepts that transcend individual providers.
+- **Limited developer friction**: All the times I've got angry because a mistake I could have avoided got picked up 30 minutes into a build. All the times I've had to fix a problem after deployment. All the times I've been reactive rather than proactive. This project is for you. From the earliest stages of design I've aimed to make the development experience frictionless. I want to set and maintain quality standards without having to remember what they are. I want to enable these standards to grow and evolve with the project. 
+
+---
 
 # Contributing Guidelines
 
-Thank you for contributing to the Environmental Public Health Platform! To maintain structural integrity and a linear git history, all developers must adhere to the following code quality and commit standards.
+Thank you for contributing to the Environmental Public Health Platform! The following code quality and commit standards are enforced at CI. pre-commit checks ensure no commit can be made if it doesn't pass code linting standards. Pull requests to `main` will check container's successfully build, tests successfully run, test coverage is beyond the set threshold, and security vulnerabilities are patched.
 
 ## 📋 Conventional Commit Standards
 
-We enforce the **Conventional Commits** specification. Every commit message must match this metadata layout to pass our automation gates:
+We enforce the **Conventional Commits** specification. Every commit message must match this metadata layout:
 
 ```text
-<type>(<scope>): <short summary in present tense>
+<type>(<optional scope>): <message>
+```
+eg:
+```
+build: add gcp emulation to docker-compose
+```
+```
+feat(backend): add pipeline for air quality
 ```
 
 ### Allowed Commit Types
+* `build`: Changes affecting compilation, Dockerfiles, or Docker Compose structures.
+* `chore`: Maintenance, updating dependency locks, or general file housekeeping.
+* `ci`: Changes to our automation configurations (e.g., GitHub Actions YAML).
+* `docs`: Documentation-only adjustments (e.g., updating this guide or a README).
 * `feat`: A brand new platform feature or data pipeline module.
 * `fix`: A bug fix or corrected layout logic.
-* `ci`: Changes to our automation configurations (e.g., GitHub Actions YAML).
-* `build`: Changes affecting compilation, Dockerfiles, or Docker Compose structures.
-* `docs`: Documentation-only adjustments (e.g., updating this guide or a README).
-* `test`: Adding missing tests or correcting existing test suites.
-* `chore`: Maintenance, updating dependency locks, or general file housekeeping.
+* `perf`: A code change that improves performance.
+* `refactor`: A code change that neither fixes a bug nor adds a feature.
 * `revert`: Remove a change in order to unblock future development
+* `style`: Changes that do not affect the meaning of the code (white-space, formatting, etc).
+* `test`: Adding missing tests or correcting existing test suites.
 
 ### Allowed Scopes
-* `infra`: Core container environments, dev-containers, or networks.
 * `backend`: Data ingestion scripts, Prefect flows, or storage adapters.
 * `api`: FastAPI route handlers, gateways, or access controllers.
 * `frontend`: Marimo dashboards or geospatial analytics viewports.
@@ -48,18 +72,18 @@ We enforce the **Conventional Commits** specification. Every commit message must
 
 ## 🛠️ Local Quality Validation (Pre-Commit Hooks)
 
-Our platform utilizes an automated, zero-duplication linting framework powered by `pre-commit` and bound directly to your local `uv` lockfile environment. 
+Our platform uses the pre-commit package to provide linting that is applied prior to every commit. Commits that fail linting will be rejected and often fixed automatically. If a commit fails the linter may make changes to the code. Stage these changes and try again.  
 
-The hooks run automatically on `git commit`, but you should execute a global pass manually across all code vectors before pushing to the server:
+The hooks run automatically on `git commit`, but can be manually anytime.
 
 ```bash
 uv run pre-commit run --all-files
 ```
 
 ### What our validation suite scans for:
-1. **Commit Linter**: Re-verifies your message conforms strictly to Conventional Commits.
+1. **Commit Linter**: verifies your message conforms to Conventional Commits.
 2. **Ruff Check & Format**: Auto-fixes Python syntax formatting and indentation on the fly.
-3. **Mypy Static Typing**: Runs a strict mathematical type-check evaluation over all function definitions.
+3. **Ty Static Typing**: Runs a type-check evaluation over all function definitions.
 4. **Hygiene Guards**: Validates configuration integrity for all YAML, TOML, and secret key boundaries.
 
 ---

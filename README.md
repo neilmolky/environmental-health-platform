@@ -1,24 +1,25 @@
+# Platform Intention
+This project is intended to showcase a Containerised Data Platform. The design is intended to be free to spin up locally so anyone can run it, but scalable to cloud infrastructure and cloud agnostic.
 
+## Users:
+* **Data Automation**: users of the platform want data that is up to date, validated, and enhanced. Data transformations and orchestration with prefect is completed in `backend/` 
+* **API Users**: users of the platform want public access to the data, but the platform must control what users can and cant interact with. A FastAPI application in `api/` provides a public endpoint for data that is explicitly for public use.
+* **Data Analysts**: users of the platform may want to explore the available data without downloading it. `frontend/` contains marimo notebooks and tools that allow users to analyse the data interactively, in their browser. 
 
-### Rules (this may belong in contributing but for now I don't want to forget)
+## Use Case
+Climate data is loaded into a data lake and transformed to enable health-driven analytics. 
 
-https://www.conventionalcommits.org/
+# 💻 Local Environment Prerequisites
 
-type(scope): msg
+To run the whole platform the host machine must satisfy the following system requirements:
 
-types: chore, ci, docs, feat, fix, refactor, test, style
+1. **Git**: Git must be installed on your host machine.
+2. **Docker Engine**: Docker must be installed and running on your host machine.
+3. **Execution**:
+```shell
+git clone https://github.com/neilmolky/environmental-health-platform
+cd environmental-health-platform 
+docker compose up
+```
 
-Type
-
-Must be one of the following:
-
-    build: Changes that affect the build system or external dependencies (uv, docker)
-    chore: General project maintenance (bump version)
-    ci: Changes to our CI configuration files and scripts (github actions)
-    docs: Documentation only changes
-    feat: A new feature
-    fix: A bug fix
-    perf: A code change that improves performance
-    refactor: A code change that neither fixes a bug nor adds a feature
-    style: Changes that do not affect the meaning of the code (white-space, formatting, etc)
-    test: Adding missing tests or correcting existing tests
+*See also: CONTRIBUTING.md explains how to set up a dev-container if you want to add features and test them locally*

@@ -34,21 +34,23 @@ jobs:
         with:
           extra_args: --all-files
       
-      - name: Run Test Suite with Coverage
+      - name: Run Integration Tests
+        env:
+          MET_OFFICE_CLIENT_SECRET: ${{ secrets.MET_OFFICE_CLIENT_SECRET }}
         run: |
-          uv run pytest --cov-report=xml
+          uv run pytest -m integration
 
-      - name: Generate PR Test Coverage Summary Card
-        uses: irongut/CodeCoverageSummary@v1.3.0
+      - name: Run Test Suite with Coverage
+        # TODO: sepperate mocks from integration tests, only run mocks with coverage 
+        env:
+          MET_OFFICE_CLIENT_SECRET: ${{ secrets.MET_OFFICE_CLIENT_SECRET }}
+        run: |
+          uv run pytest -m 'not integration' --cov-report=xml
+
+      - name: Generate PR Coverage Comment
+        uses: py-cov-action/python-coverage-comment-action@v3
         with:
-          filename: coverage.xml
-          format: markdown
-          output: file
-          badge: true
-
-      # Appends the markdown report directly onto the GitHub Actions run summary page
-      - name: Publish Coverage Summary to Run Log
-        run: cat code-coverage-results.md >> $GITHUB_STEP_SUMMARY
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   container-security-scan:
     name: Container Vulnerability Scan
