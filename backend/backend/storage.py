@@ -6,7 +6,20 @@ import fsspec
 
 
 def get_storage_client() -> fsspec.AbstractFileSystem:
-    """Factory function resolving the client based on runtime environment."""
+    """
+    Return an fsspec filesystem client configured according to the STORAGE_BACKEND environment variable.
+    
+    Supported backends:
+    - "aws": returns an S3 filesystem configured from AWS_ENDPOINT_URL, AWS_ACCESS_KEY_ID, and AWS_SECRET_ACCESS_KEY.
+    - "azure": returns an ABFS filesystem configured from AZURE_STORAGE_CONNECTION_STRING.
+    - "file": returns a local filesystem.
+    
+    Returns:
+        fsspec.AbstractFileSystem: A filesystem client instance configured for the selected backend.
+    
+    Raises:
+        NotImplementedError: If STORAGE_BACKEND is set to an unsupported value.
+    """
     backend_type = os.getenv("STORAGE_BACKEND", "file").lower()
 
     match backend_type:

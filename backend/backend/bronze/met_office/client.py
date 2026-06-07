@@ -40,11 +40,11 @@ class _MetOfficeClientConfig(BaseSettings):
 
     def add_auth_header(self, request: httpx.Request) -> httpx.Request:
         """
-        Attach the configured API key to the provided HTTPX request's headers.
-
+        Attach the configured API key to the given HTTPX request's headers.
+        
         Parameters:
             request (httpx.Request): The outgoing HTTP request to modify.
-
+        
         Returns:
             httpx.Request: The same request instance with its "apikey" header set.
         """
@@ -54,11 +54,10 @@ class _MetOfficeClientConfig(BaseSettings):
     @asynccontextmanager
     async def async_api_client(self) -> AsyncGenerator[httpx.AsyncClient]:
         """
-        Create an async context manager that yields an httpx.AsyncClient configured
-        with the Met Office base URL and API key header.
-
+        Provide an HTTPX async client preconfigured for Met Office requests.
+        
         Returns:
-            httpx.AsyncClient: A configured HTTPX async client instance.
+            httpx.AsyncClient: An async HTTP client with `base_url` set to the configured Met Office URL, a per-request `apikey` header injected from the client's secret, and `Accept: application/json` set.
         """
         async with httpx.AsyncClient(
             base_url=self.base_url.encoded_string(),
@@ -72,14 +71,10 @@ class _MetOfficeClientConfig(BaseSettings):
     @contextmanager
     def api_client(self) -> Generator[httpx.Client]:
         """
-        Provide a synchronous HTTP client configured for the Met Office API
-        as a context manager.
-
-        The client uses this config's `base_url`,
-        injects the API key via the `apikey` header on each request,
-        and sets `Accept: application/json`.
-        The client is automatically closed when the context manager exits.
-
+        Create a synchronous HTTP client configured for the Met Office API.
+        
+        The client injects the API key via the `apikey` header on each request and sets `Accept: application/json`.
+        
         Returns:
             httpx.Client: A configured synchronous HTTP client instance.
         """

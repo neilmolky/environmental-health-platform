@@ -12,10 +12,10 @@ class One[T: BaseModel](RootModel[tuple[T]]):
     @property
     def item(self) -> T:
         """
-        Access the first (and expected only) element of the underlying root tuple.
-
+        Return the first (and expected only) element from the model's root tuple.
+        
         Returns:
-            The element of type T stored at index 0 of the root tuple.
+            T: The element of type T stored at index 0 of the root tuple.
         """
         return self.root[0]
 
@@ -60,15 +60,11 @@ class Some[T: BaseModel](RootModel[list[T]]):
     def __getitem__(self, index: int) -> T:
         """
         Retrieve the element at the given index from the wrapped list.
-
+        
         Parameters:
-            index (int): Position of the element to retrieve;
-                negative indices count from the end.
-
+            index (int): Position of the element to retrieve. Negative values count from the end (e.g., -1 is the last element).
+        
         Returns:
             T: The element at the specified index.
-
-        Raises:
-            IndexError: If the index is out of range.
         """
         return self.root[index]
