@@ -5,78 +5,31 @@ from typing import Self
 
 import httpx
 from backend.bronze.met_office.client import (
-    LatLon,
     MetOfficeLandObservationNearest,
     One,
     get_nearest,
 )
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
+from utils.met_office_models import MetOfficeLandObservationRecord
 
 
-class MetOfficeLandObservationRecord(LatLon, frozen=True):
+def fetch_resolved_state(
+    record: MetOfficeLandObservationRecord, client: httpx.Client
+) -> "MetOfficeLandObservationRecord":
     """
-    The unified, version-controlled compilation target.
-    Uses composition to cleanly separate input targets from network resolutions.
+    Fetch resolved station metadata for this coordinate and return a new record populated with that metadata and a current UTC registry timestamp.
+
+    Returns:
+        MetOfficeLandObservationRecord: A new record with the same `lat` and `lon`, `station_meta` set to the resolved nearest-station metadata, and `added_to_registry` set to the current UTC datetime.
     """
-
-    station_meta: MetOfficeLandObservationNearest | None = Field(
-        None, description="Resolved station metadata details from the live network"
+    result_bytes = get_nearest(client, record.lat, record.lon)
+    result = One[MetOfficeLandObservationNearest].model_validate_json(result_bytes).item
+    return MetOfficeLandObservationRecord(
+        lat=record.lat,
+        lon=record.lon,
+        station_meta=result,
+        added_to_registry=datetime.now(timezone.utc),
     )
-    added_to_registry: datetime | None = Field(
-        default=None,
-        description="Audit tracking marker indicating exactly when this coordinate pair was compiled",
-    )
-
-    def __eq__(self, other: object) -> bool:
-        """
-        Compare two records for equality based solely on their latitude and longitude.
-
-        Returns:
-            True if `other` is a MetOfficeLandObservationRecord with the same `lat` and `lon`, False otherwise.
-        """
-        if not isinstance(other, MetOfficeLandObservationRecord):
-            return False
-        # Two records are equal if their coordinates match, regardless of cache state
-        return self.lat == other.lat and self.lon == other.lon
-
-    def __hash__(self) -> int:
-        """
-        Compute a hash value for the record using its latitude and longitude.
-
-        Returns:
-            int: Hash derived from the `(lat, lon)` coordinate pair.
-        """
-        return hash((self.lat, self.lon))
-
-    @property
-    def is_cached(self) -> bool:
-        """
-        Return whether the record has resolved station metadata and a registry timestamp.
-
-        Returns:
-            bool: `True` if both `station_meta` and `added_to_registry` are not `None`, `False` otherwise.
-        """
-        return (self.station_meta is not None) and (self.added_to_registry is not None)
-
-    def fetch_resolved_state(
-        self, client: httpx.Client
-    ) -> "MetOfficeLandObservationRecord":
-        """
-        Fetch resolved station metadata for this coordinate and return a new record populated with that metadata and a current UTC registry timestamp.
-
-        Returns:
-            MetOfficeLandObservationRecord: A new record with the same `lat` and `lon`, `station_meta` set to the resolved nearest-station metadata, and `added_to_registry` set to the current UTC datetime.
-        """
-        result_bytes = get_nearest(client, self.lat, self.lon)
-        result = (
-            One[MetOfficeLandObservationNearest].model_validate_json(result_bytes).item
-        )
-        return MetOfficeLandObservationRecord(
-            lat=self.lat,
-            lon=self.lon,
-            station_meta=result,
-            added_to_registry=datetime.now(timezone.utc),
-        )
 
 
 class MetOfficeLandObservationRegistry(BaseModel):
@@ -165,7 +118,7 @@ class MetOfficeLandObservationRegistry(BaseModel):
         for item in self.items:
             if not item.is_cached:
                 # Trigger network resolution and append the clean object copy
-                updated_items.add(item.fetch_resolved_state(client))
+                updated_items.add(fetch_resolved_state(item, client))
             else:
                 updated_items.add(item)
         self.items = updated_items

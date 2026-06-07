@@ -2,14 +2,14 @@ import random
 from datetime import datetime, timedelta, timezone
 from typing import Annotated, List
 
-from backend.bronze.met_office.client import (
+from fastapi import FastAPI, HTTPException, Query, Security, status
+from fastapi.security import APIKeyHeader
+from polyfactory.factories.pydantic_factory import ModelFactory
+from utils.met_office_models import (
     LatLon,
     MetOfficeLandObservationGeohash,
     MetOfficeLandObservationNearest,
 )
-from fastapi import FastAPI, HTTPException, Query, Security, status
-from fastapi.security import APIKeyHeader
-from polyfactory.factories.pydantic_factory import ModelFactory
 
 # Define the expected header name (adjust to match what your real API expects)
 API_KEY_HEADER = APIKeyHeader(name="apikey", auto_error=True)

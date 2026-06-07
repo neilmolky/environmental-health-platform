@@ -1,13 +1,16 @@
-import math
 import os
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager, contextmanager
-from datetime import datetime
 from typing import Generator
 
 import httpx
-from pydantic import BaseModel, Field, HttpUrl, SecretStr
+from pydantic import Field, HttpUrl, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from utils.met_office_models import (
+    LatLon,
+    MetOfficeLandObservationGeohash,
+    MetOfficeLandObservationNearest,
+)
 from utils.pydantic_utils import One, Some
 
 MET_OFFICE_LIVE_URL = "https://data.hub.api.metoffice.gov.uk"
@@ -105,46 +108,6 @@ def met_office_client_factory(use_mock: bool | None = None) -> _MetOfficeClientC
     return _MetOfficeClientConfig()
 
 
-class MetOfficeLandObservationNearest(BaseModel):
-    """/observation-land/1/nearest"""
-
-    geohash: str
-    """Geohash of the observation location"""
-    area: str
-    """Location area"""
-    region: str | None
-    """Region code for UK locations"""
-    country: str | None
-    """The country of the location"""
-    olson_time_zone: str | None
-    """Olson time zone string of location"""
-
-
-class MetOfficeLandObservationGeohash(BaseModel):
-    """/observation-land/1/{geohash}"""
-
-    datetime: datetime
-    """Date of the observation."""
-    humidity: int | None
-    """Probability as a percentage of 100."""
-    mslp: int | None
-    """Mean surface level pressure in hPA."""
-    pressure_tendency: str | None
-    """Pressure tendency representing Rising, Falling or Steady."""
-    temperature: float | None
-    """Air temperature in °C."""
-    visibility: int | None
-    """Visibility in metres."""
-    weather_code: int | None
-    """Numerical code for the weather symbol."""
-    wind_direction: str | None
-    """Direction the wind is travelling from in 16 point compass notation."""
-    wind_gust: float | None
-    """Wind gust speed in m/s."""
-    wind_speed: float | None
-    """Wind speed in m/s."""
-
-
 async def get_observation_async(
     client_session: httpx.AsyncClient, geohash: str
 ) -> bytes:
@@ -178,43 +141,6 @@ def get_observation(client_session: httpx.Client, geohash: str) -> bytes:
     response = client_session.get(f"/observation-land/1/{geohash}")
     response.raise_for_status()
     return response.content
-
-
-class LatLon(BaseModel, frozen=True):
-    """
-    Helper Model, validates latitude and longitude values against permitted latitude and longitudes defined by Met Office Api
-
-    frozen to enable hashing
-    """
-
-    lat: float = Field(..., ge=-90.0, le=90.0, description="Target query latitude")
-    lon: float = Field(..., ge=-180.0, le=180.0, description="Target query longitude")
-
-    @property
-    def lat_radians(self):
-        return math.radians(self.lat)
-
-    @property
-    def lon_radians(self):
-        return math.radians(self.lon)
-
-    def haversine_distance(self, other: "LatLon") -> float:
-        """Calculates the distance in kilometers between two geographic points."""
-        dlat = other.lat_radians - self.lat_radians
-        dlon = other.lon_radians - self.lon_radians
-
-        # Haversine core math
-        a = (
-            math.sin(dlat / 2) ** 2
-            + math.cos(self.lat_radians)
-            * math.cos(other.lat_radians)
-            * math.sin(dlon / 2) ** 2
-        )
-        c = 2 * math.asin(math.sqrt(a))
-
-        # Earth's radius in kilometers
-        earth_radius_km = 6371.0
-        return round(c * earth_radius_km, 2)
 
 
 def get_nearest(
