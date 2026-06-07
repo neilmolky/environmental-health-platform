@@ -38,10 +38,10 @@ class _MetOfficeClientConfig(BaseSettings):
     def add_auth_header(self, request: httpx.Request) -> httpx.Request:
         """
         Attach the configured API key to the provided HTTPX request's headers.
-        
+
         Parameters:
             request (httpx.Request): The outgoing HTTP request to modify.
-        
+
         Returns:
             httpx.Request: The same request instance with its "apikey" header set to the configured secret.
         """
@@ -52,7 +52,7 @@ class _MetOfficeClientConfig(BaseSettings):
     async def async_api_client(self) -> AsyncGenerator[httpx.AsyncClient]:
         """
         Create an async context manager that yields an httpx.AsyncClient configured with the Met Office base URL and API key header.
-        
+
         Returns:
             httpx.AsyncClient: A configured HTTPX async client instance.
         """
@@ -69,9 +69,9 @@ class _MetOfficeClientConfig(BaseSettings):
     def api_client(self) -> Generator[httpx.Client]:
         """
         Provide a synchronous HTTP client configured for the Met Office API as a context manager.
-        
+
         The client uses this config's `base_url`, injects the API key via the `apikey` header on each request, and sets `Accept: application/json`. The client is automatically closed when the context manager exits.
-        
+
         Returns:
             httpx.Client: A configured synchronous HTTP client instance.
         """
@@ -88,10 +88,10 @@ class _MetOfficeClientConfig(BaseSettings):
 def met_office_client_factory(use_mock: bool | None = None) -> _MetOfficeClientConfig:
     """
     Create a configured Met Office client config for mock or live use.
-    
+
     Parameters:
         use_mock (bool | None): When True, return a config primed for mock usage. When False, return a config populated from environment/.env. When None (default), decide based on presence of the `MET_OFFICE_MOCK_URL` environment variable.
-    
+
     Returns:
         _MetOfficeClientConfig: A configured client object. If `use_mock` is True, the returned config is populated with a fixed secret value for mocking; otherwise it is populated from environment/.env.
     """
@@ -149,13 +149,13 @@ async def get_observation_async(
 ) -> bytes:
     """
     Retrieve the raw response body for a land observation identified by `geohash`.
-    
+
     Parameters:
         geohash (str): Geohash identifying the observation location.
-    
+
     Returns:
         bytes: Response body bytes containing the observation payload.
-    
+
     Raises:
         httpx.HTTPStatusError: If the HTTP response status is not 2xx.
     """
@@ -167,10 +167,10 @@ async def get_observation_async(
 def get_observation(client_session: httpx.Client, geohash: str) -> bytes:
     """
     Fetches land observation data for the given geohash from the Met Office API.
-    
+
     Parameters:
         geohash (str): Geohash identifying the observation location.
-    
+
     Returns:
         bytes: Raw response body (JSON) returned by the API.
     """
@@ -186,14 +186,14 @@ def get_nearest(
 ) -> bytes:
     """
     Fetch the nearest land observation for the specified geographic coordinates.
-    
+
     Parameters:
         lat (float): Latitude in decimal degrees.
         lon (float): Longitude in decimal degrees.
-    
+
     Returns:
         bytes: Raw response body bytes containing the nearest observation JSON.
-    
+
     Raises:
         httpx.HTTPStatusError: If the HTTP response status is not 2xx.
     """
