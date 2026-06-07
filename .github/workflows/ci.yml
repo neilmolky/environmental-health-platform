@@ -18,7 +18,7 @@ jobs:
           fetch-depth: 0 # Required for tracking Git logs for Conventional Commits
 
       - name: Set up Astral UV environment
-        uses: astral-sh/setup-uv@v3
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b
         with:
           version: "latest"
           enable-cache: true
