@@ -75,7 +75,7 @@ jobs:
 
       # Execute structural safety check over the compiled image layers
       - name: Run Trivy Vulnerability Scanner
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: 'environmental-health-backend:test'
           format: 'table'
