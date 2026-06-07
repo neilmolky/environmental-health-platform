@@ -7,8 +7,8 @@ from pydantic import Field, HttpUrl, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from utils.met_office_models import (
     LatLon,
-    MetOfficeLandObservationGeohash,
-    MetOfficeLandObservationNearest,
+    MetOfficeLandObservation,
+    MetOfficeLandObservationStation,
 )
 from utils.pydantic_utils import One, Some
 
@@ -180,12 +180,12 @@ if __name__ == "__main__":
     cfg = met_office_client_factory()
     with cfg.api_client() as client:
         nearest = (
-            One[MetOfficeLandObservationNearest]
+            One[MetOfficeLandObservationStation]
             .model_validate_json(get_nearest(client, 50.72, -3.53))
             .item
         )
         observation = (
-            Some[MetOfficeLandObservationGeohash]
+            Some[MetOfficeLandObservation]
             .model_validate_json(get_observation(client, nearest.geohash))
             .root
         )

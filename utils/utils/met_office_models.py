@@ -57,7 +57,7 @@ class LatLonFactory(ModelFactory[LatLon]):
         return round(random.uniform(-7.0, 1.5), 4)
 
 
-class MetOfficeLandObservationGeohash(BaseModel):
+class MetOfficeLandObservation(BaseModel):
     """/observation-land/1/{geohash}"""
 
     datetime: datetime
@@ -82,13 +82,11 @@ class MetOfficeLandObservationGeohash(BaseModel):
     """Wind speed in m/s."""
 
 
-class MetOfficeLandObservationGeohashFactory(
-    ModelFactory[MetOfficeLandObservationGeohash]
-):
-    __model__ = MetOfficeLandObservationGeohash
+class MetOfficeLandObservationFactory(ModelFactory[MetOfficeLandObservation]):
+    __model__ = MetOfficeLandObservation
 
 
-class MetOfficeLandObservationNearest(BaseModel):
+class MetOfficeLandObservationStation(BaseModel):
     """/observation-land/1/nearest"""
 
     geohash: str
@@ -103,10 +101,10 @@ class MetOfficeLandObservationNearest(BaseModel):
     """Olson time zone string of location"""
 
 
-class MetOfficeLandObservationNearestFactory(
-    ModelFactory[MetOfficeLandObservationNearest]
+class MetOfficeLandObservationStationFactory(
+    ModelFactory[MetOfficeLandObservationStation]
 ):
-    __model__ = MetOfficeLandObservationNearest
+    __model__ = MetOfficeLandObservationStation
 
 
 class MetOfficeLandObservationRecord(LatLon, frozen=True):
@@ -115,7 +113,7 @@ class MetOfficeLandObservationRecord(LatLon, frozen=True):
     Uses composition to cleanly separate input targets from network resolutions.
     """
 
-    station_meta: MetOfficeLandObservationNearest | None = Field(
+    station_meta: MetOfficeLandObservationStation | None = Field(
         None, description="Resolved station metadata details from the live network"
     )
     added_to_registry: datetime | None = Field(

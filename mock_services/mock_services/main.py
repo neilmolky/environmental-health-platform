@@ -6,10 +6,10 @@ from fastapi.security import APIKeyHeader
 from utils.met_office_models import (
     LatLon,
     LatLonFactory,
-    MetOfficeLandObservationGeohash,
-    MetOfficeLandObservationGeohashFactory,
-    MetOfficeLandObservationNearest,
-    MetOfficeLandObservationNearestFactory,
+    MetOfficeLandObservation,
+    MetOfficeLandObservationFactory,
+    MetOfficeLandObservationStation,
+    MetOfficeLandObservationStationFactory,
 )
 
 # Define the expected header name (adjust to match what your real API expects)
@@ -48,11 +48,11 @@ app = FastAPI(
 
 # --- 3. STATEFUL RUNTIME DATABASE ---
 MOCK_STATION_COORDINATES: list[LatLon] = LatLonFactory.batch(size=5)
-MOCK_GEOHASH_DB: dict[LatLon, list[MetOfficeLandObservationNearest]] = {
-    coord: MetOfficeLandObservationNearestFactory.batch(size=1)
+MOCK_GEOHASH_DB: dict[LatLon, list[MetOfficeLandObservationStation]] = {
+    coord: MetOfficeLandObservationStationFactory.batch(size=1)
     for coord in MOCK_STATION_COORDINATES
 }
-MOCK_OBSERVATION_DB: dict[str, list[MetOfficeLandObservationGeohash]] = {}
+MOCK_OBSERVATION_DB: dict[str, list[MetOfficeLandObservation]] = {}
 
 now = datetime.now(UTC)
 
@@ -67,7 +67,7 @@ for record in MOCK_GEOHASH_DB.values():
 
         # Build a single randomized mock payload using Polyfactory,
         # but explicitly override the 'datetime' field with our calculated sequence!
-        mock_observation = MetOfficeLandObservationGeohashFactory.build(
+        mock_observation = MetOfficeLandObservationFactory.build(
             datetime=target_timestamp
         )
 
@@ -80,22 +80,22 @@ for record in MOCK_GEOHASH_DB.values():
 # literal endpoint comes first!
 @app.get(
     "/observation-land/1/nearest",
-    response_model=list[MetOfficeLandObservationNearest],
+    response_model=list[MetOfficeLandObservationStation],
     status_code=status.HTTP_200_OK,
 )
 async def get_nearest(
     coordinates: Annotated[LatLon, Query()],
-) -> list[MetOfficeLandObservationNearest]:
+) -> list[MetOfficeLandObservationStation]:
     key = min(MOCK_STATION_COORDINATES, key=coordinates.haversine_distance)
     return MOCK_GEOHASH_DB[key]
 
 
 @app.get(
     "/observation-land/1/{geohash}",
-    response_model=list[MetOfficeLandObservationGeohash],
+    response_model=list[MetOfficeLandObservation],
     status_code=status.HTTP_200_OK,
 )
-async def get_observation_async(geohash: str) -> list[MetOfficeLandObservationGeohash]:
+async def get_observation_async(geohash: str) -> list[MetOfficeLandObservation]:
     if geohash not in MOCK_OBSERVATION_DB:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

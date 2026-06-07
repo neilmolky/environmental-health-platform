@@ -5,7 +5,7 @@ from typing import Self
 
 import httpx
 from backend.bronze.met_office.client import (
-    MetOfficeLandObservationNearest,
+    MetOfficeLandObservationStation,
     One,
     get_nearest,
 )
@@ -26,7 +26,7 @@ def fetch_resolved_state(
         and `added_to_registry` set to the current UTC datetime.
     """
     result_bytes = get_nearest(client, record.lat, record.lon)
-    result = One[MetOfficeLandObservationNearest].model_validate_json(result_bytes).item
+    result = One[MetOfficeLandObservationStation].model_validate_json(result_bytes).item
     return MetOfficeLandObservationRecord(
         lat=record.lat,
         lon=record.lon,

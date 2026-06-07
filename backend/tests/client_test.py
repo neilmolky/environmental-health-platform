@@ -4,8 +4,8 @@ import httpx
 import pytest
 from backend.bronze.met_office.client import (
     MET_OFFICE_USER_URL,
-    MetOfficeLandObservationGeohash,
-    MetOfficeLandObservationNearest,
+    MetOfficeLandObservation,
+    MetOfficeLandObservationStation,
     _MetOfficeClientConfig,
     get_nearest,
     get_observation,
@@ -50,12 +50,12 @@ class TestMetOfficeClient:
         # test simply runs with the pydantic validation to identify schema drift
         # might raise a connection error or validation error causing the test to fail
         nearest = (
-            One[MetOfficeLandObservationNearest]
+            One[MetOfficeLandObservationStation]
             .model_validate_json(get_nearest(client, 50.72, -3.53))
             .item
         )
         observation = (
-            Some[MetOfficeLandObservationGeohash]
+            Some[MetOfficeLandObservation]
             .model_validate_json(get_observation(client, nearest.geohash))
             .root
         )

@@ -58,7 +58,8 @@ addopts = """
     --cov-report=term-missing
 """
 markers = [
-    "integration: marks tests as heavy integration or live network smoke tests"
+    "integration: marks tests as heavy integration or live network smoke tests",
+    "mocks: marks tests as reliant on mock services, only suitable for running in the dev-container",
 ]
 testpaths = [
     "backend/tests",

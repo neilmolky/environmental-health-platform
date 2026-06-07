@@ -3,8 +3,8 @@ from datetime import UTC, datetime
 import pytest
 from utils.met_office_models import (
     LatLon,
-    MetOfficeLandObservationNearestFactory,
     MetOfficeLandObservationRecord,
+    MetOfficeLandObservationStationFactory,
 )
 
 
@@ -18,7 +18,7 @@ def test_deduplication_logic(greenwich: dict[str, float]) -> None:
     unresolved = MetOfficeLandObservationRecord.model_validate(greenwich)
     resolved = MetOfficeLandObservationRecord(
         **greenwich,
-        station_meta=MetOfficeLandObservationNearestFactory.batch(size=1)[0],
+        station_meta=MetOfficeLandObservationStationFactory.batch(size=1)[0],
         added_to_registry=datetime.now(UTC),
     )
     assert not unresolved.is_cached

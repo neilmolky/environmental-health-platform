@@ -38,10 +38,11 @@ Thank you for contributing to the Environmental Public Health Platform! The foll
 ## Commands run in CI
 The following commands which run in CI can be run locally to validate your build before each commit.
 
-uv sync                            # ensure dependencies are up to date
-uv run pre-commit run --all-files  # runs ruff, ty and other linting tools
-uv run pytest -m 'not integration' # 
-uv run pytest                      # run the full suite of tests, mocks are not run in ci
+```bash
+uv sync                                          # ensure dependencies are up to date
+uv run pre-commit run --all-files                # runs ruff, ty and other linting tools
+uv run pytest -m 'not integration and not mocks' # runs the unittests that require no configuration or external services
+uv run pytest                                    # run the full suite of tests, mocks are not run in ci
 ```
 
 ## 📋 Conventional Commit Standards
