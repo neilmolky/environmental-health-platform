@@ -17,10 +17,13 @@ def fetch_resolved_state(
     record: MetOfficeLandObservationRecord, client: httpx.Client
 ) -> "MetOfficeLandObservationRecord":
     """
-    Resolve the nearest station for the given coordinate and return a new registry record populated with that station metadata.
-    
+    Resolve the nearest station for the given coordinate and return a new registry
+    record populated with that station metadata.
+
     Returns:
-        MetOfficeLandObservationRecord: A new record with `lat` and `lon` copied from the input, `station_meta` set to the resolved nearest-station metadata, and `added_to_registry` set to the current UTC datetime.
+        MetOfficeLandObservationRecord: A new record with `lat` and `lon` copied from
+        the input, `station_meta` set to the resolved nearest-station metadata, and
+        `added_to_registry` set to the current UTC datetime.
     """
     result_bytes = get_nearest(client, record.lat, record.lon)
     result = One[MetOfficeLandObservationStation].model_validate_json(result_bytes).item
@@ -44,15 +47,18 @@ class MetOfficeLandObservationRegistry(BaseModel):
     def registry_path(parent_dir: Path | str | None = None) -> Path:
         """
         Return the path to the geohash registry file located in the given directory.
-        
+
         Parameters:
-            parent_dir (Path | str | None): Directory to contain the registry file; if None, uses the directory of this module.
-        
+            parent_dir (Path | str | None): Directory to contain the registry file;
+            if None, uses the directory of this module.
+
         Returns:
-            Path: Path pointing to "geohash_registry.json" inside the resolved directory.
-        
+            Path: Path pointing to "geohash_registry.json" inside the resolved
+            directory.
+
         Raises:
-            NotADirectoryError: If `parent_dir` exists and is a file rather than a directory.
+            NotADirectoryError: If `parent_dir` exists and is a file rather than a
+            directory.
         """
         if parent_dir is None:
             parent_dir = Path(__file__).parent
@@ -65,12 +71,14 @@ class MetOfficeLandObservationRegistry(BaseModel):
     def load_from_disk(cls, parent_dir: Path | str | None = None) -> Self:
         """
         Load a MetOfficeLandObservationRegistry from the registry JSON file on disk.
-        
+
         Parameters:
-            parent_dir (Path | str | None): Directory containing the registry file; if None, the module's directory is used.
-        
+            parent_dir (Path | str | None): Directory containing the registry file;
+            if None, the module's directory is used.
+
         Returns:
-            MetOfficeLandObservationRegistry: The registry loaded from disk, or an empty registry when the registry file does not exist.
+            MetOfficeLandObservationRegistry: The registry loaded from disk,
+            or an empty registry when the registry file does not exist.
         """
         path = cls.registry_path(parent_dir)
         if not path.exists():
@@ -133,8 +141,9 @@ class MetOfficeLandObservationRegistry(BaseModel):
 
     def register_location(self, lat: float, lon: float) -> None:
         """
-        Add a geographic coordinate to the registry if a matching record is not already present.
-        
+        Add a geographic coordinate to the registry if a matching record is not
+        already present.
+
         Parameters:
             lat (float): Latitude in degrees; valid range is 49.0 to 61.0.
             lon (float): Longitude in degrees; valid range is -11.0 to 2.0.
@@ -145,10 +154,12 @@ class MetOfficeLandObservationRegistry(BaseModel):
 
     def get_geohash_set(self) -> set[str]:
         """
-        Collects geohash identifiers for registry items that have resolved station metadata.
-        
+        Collects geohash identifiers for registry items that have resolved
+        station metadata.
+
         Returns:
-            set[str]: Geohash strings taken from `item.station_meta.geohash` for each item where `station_meta` is present.
+            set[str]: Geohash strings taken from `item.station_meta.geohash` for
+                      each item where `station_meta` is present.
         """
         return {item.station_meta.geohash for item in self.items if item.station_meta}
 

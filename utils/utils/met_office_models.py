@@ -21,7 +21,7 @@ class LatLon(BaseModel, frozen=True):
     def lat_radians(self) -> float:
         """
         Latitude converted to radians.
-        
+
         Returns:
             float: Latitude value expressed in radians.
         """
@@ -31,7 +31,7 @@ class LatLon(BaseModel, frozen=True):
     def lon_radians(self) -> float:
         """
         Convert the longitude to radians.
-        
+
         Returns:
             Longitude in radians.
         """
@@ -40,7 +40,7 @@ class LatLon(BaseModel, frozen=True):
     def haversine_distance(self, other: "LatLon") -> float:
         """
         Compute the great-circle distance to another LatLon using the Haversine formula.
-        
+
         Returns:
             distance_km (float): Distance in kilometers rounded to 2 decimal places.
         """
@@ -69,9 +69,10 @@ class LatLonFactory(ModelFactory[LatLon]):
     def lat(cls) -> float:
         """
         Generate a latitude constrained to a UK bounding box.
-        
+
         Returns:
-            float: Latitude in degrees between 50.0 and 58.0 inclusive, rounded to 4 decimal places.
+            float: Latitude in degrees between 50.0 and 58.0 inclusive,
+                   rounded to 4 decimal places.
         """
         return round(random.uniform(50.0, 58.0), 4)
 
@@ -79,9 +80,10 @@ class LatLonFactory(ModelFactory[LatLon]):
     def lon(cls) -> float:
         """
         Generate a longitude within the UK bounding box used by the factory.
-        
+
         Returns:
-            A longitude in decimal degrees between -7.0 and 1.5, rounded to 4 decimal places.
+            A longitude in decimal degrees between -7.0 and 1.5,
+            rounded to 4 decimal places.
         """
         return round(random.uniform(-7.0, 1.5), 4)
 
@@ -156,9 +158,10 @@ class MetOfficeLandObservationRecord(LatLon, frozen=True):
     def __eq__(self, other: object) -> bool:
         """
         Determine whether another record represents the same geographic coordinates.
-        
+
         Returns:
-            `True` if `other` is a `MetOfficeLandObservationRecord` with the same `lat` and `lon`, `False` otherwise.
+            `True` if `other` is a `MetOfficeLandObservationRecord`
+            with the same `lat` and `lon`, `False` otherwise.
         """
         if not isinstance(other, MetOfficeLandObservationRecord):
             return False
@@ -177,9 +180,11 @@ class MetOfficeLandObservationRecord(LatLon, frozen=True):
     @property
     def is_cached(self) -> bool:
         """
-        Indicates whether the record has both resolved station metadata and a registry timestamp.
-        
+        Indicates whether the record has resolved both
+        station metadata and a registry timestamp.
+
         Returns:
-            bool: `True` if both `station_meta` and `added_to_registry` are present, `False` otherwise.
+            bool: `True` if both `station_meta` and `added_to_registry` are present,
+                  `False` otherwise.
         """
         return (self.station_meta is not None) and (self.added_to_registry is not None)

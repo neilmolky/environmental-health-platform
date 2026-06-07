@@ -41,10 +41,10 @@ class _MetOfficeClientConfig(BaseSettings):
     def add_auth_header(self, request: httpx.Request) -> httpx.Request:
         """
         Attach the configured API key to the given HTTPX request's headers.
-        
+
         Parameters:
             request (httpx.Request): The outgoing HTTP request to modify.
-        
+
         Returns:
             httpx.Request: The same request instance with its "apikey" header set.
         """
@@ -55,9 +55,11 @@ class _MetOfficeClientConfig(BaseSettings):
     async def async_api_client(self) -> AsyncGenerator[httpx.AsyncClient]:
         """
         Provide an HTTPX async client preconfigured for Met Office requests.
-        
+
         Returns:
-            httpx.AsyncClient: An async HTTP client with `base_url` set to the configured Met Office URL, a per-request `apikey` header injected from the client's secret, and `Accept: application/json` set.
+            httpx.AsyncClient: An async HTTP client with `base_url` set to the
+            configured Met Office URL, a per-request `apikey` header injected
+            from the client's secret, and `Accept: application/json` set.
         """
         async with httpx.AsyncClient(
             base_url=self.base_url.encoded_string(),
@@ -72,9 +74,10 @@ class _MetOfficeClientConfig(BaseSettings):
     def api_client(self) -> Generator[httpx.Client]:
         """
         Create a synchronous HTTP client configured for the Met Office API.
-        
-        The client injects the API key via the `apikey` header on each request and sets `Accept: application/json`.
-        
+
+        The client injects the API key via the `apikey` header on each request
+        and sets `Accept: application/json`.
+
         Returns:
             httpx.Client: A configured synchronous HTTP client instance.
         """

@@ -24,15 +24,16 @@ async def validate_met_office_auth(
 ) -> str:
     """
     Ensure the provided API key matches the service's expected mock API key.
-    
+
     Parameters:
         api_key (str): API key extracted from the `apikey` request header.
-    
+
     Returns:
         str: The validated API key string.
-    
+
     Raises:
-        HTTPException: With status code 401 when the provided API key does not match the expected mock key.
+        HTTPException: With status code 401
+            when the provided API key does not match the expected mock key.
     """
     if api_key != VALID_API_KEY:
         raise HTTPException(
@@ -96,12 +97,14 @@ async def get_nearest(
 ) -> list[MetOfficeLandObservationStation]:
     """
     Finds the mock station list nearest to the provided coordinates.
-    
+
     Parameters:
         coordinates (LatLon): Query coordinates used to select the nearest mock station.
-    
+
     Returns:
-        list[MetOfficeLandObservationStation]: The list of observation station records associated with the nearest station's geohash.
+        list[MetOfficeLandObservationStation]:
+            The list of observation station records associated with the
+            nearest station's geohash.
     """
     key = min(MOCK_STATION_COORDINATES, key=coordinates.haversine_distance)
     return MOCK_GEOHASH_DB[key]
@@ -115,13 +118,14 @@ async def get_nearest(
 async def get_observation_async(geohash: str) -> list[MetOfficeLandObservation]:
     """
     Retrieve the list of mock land observations for the specified geohash.
-    
+
     Parameters:
         geohash (str): Geohash key identifying the mock observation history to return.
-    
+
     Returns:
-        list[MetOfficeLandObservation]: The list of stored observations for the given geohash.
-    
+        list[MetOfficeLandObservation]:
+            The list of stored observations for the given geohash.
+
     Raises:
         HTTPException: 404 Not Found if the geohash is not present in the mock database.
     """

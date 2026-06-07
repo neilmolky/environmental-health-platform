@@ -19,6 +19,10 @@ members = [
     "mock_services",
 ]
 
+[tool.ruff]
+line-length = 88
+
+
 [tool.ruff.lint]
 select = [
     "E",    # pycodestyle errors
@@ -32,6 +36,10 @@ select = [
     "SIM",  # flake8-simplify (Code structural streamlining)
     "BLE",  # flake8-blind-except (Blocks broad catch-all exceptions)
 ]
+
+[tool.ruff.format]
+docstring-code-format = true
+docstring-code-line-length = "dynamic"
 
 [tool.ruff.lint.flake8-annotations]
 allow-star-arg-any = false
