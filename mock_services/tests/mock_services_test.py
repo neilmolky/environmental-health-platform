@@ -36,7 +36,7 @@ class TestMetOfficeMockApi:
         """
         headers = {"apikey": "wrong_key_123"}
         response: httpx.Response = client.get(
-            "/observation-land/1/nearest?latitude=51.5074&longitude=-0.1278",
+            "/observation-land/1/nearest?lat=51.5074&lon=-0.1278",
             headers=headers,
         )
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
