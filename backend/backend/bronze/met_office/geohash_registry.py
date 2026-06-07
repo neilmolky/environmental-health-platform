@@ -1,87 +1,38 @@
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Self
 
 import httpx
 from backend.bronze.met_office.client import (
-    MetOfficeLandObservationNearest,
+    MetOfficeLandObservationStation,
     One,
     get_nearest,
 )
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
+from utils.met_office_models import MetOfficeLandObservationRecord
 
 
-class MetOfficeLandObservationRecord(BaseModel, frozen=True):
+def fetch_resolved_state(
+    record: MetOfficeLandObservationRecord, client: httpx.Client
+) -> "MetOfficeLandObservationRecord":
     """
-    The unified, version-controlled compilation target.
-    Uses composition to cleanly separate input targets from network resolutions.
+    Resolve the nearest station for the given coordinate and return a new registry
+    record populated with that station metadata.
+
+    Returns:
+        MetOfficeLandObservationRecord: A new record with `lat` and `lon` copied from
+        the input, `station_meta` set to the resolved nearest-station metadata, and
+        `added_to_registry` set to the current UTC datetime.
     """
-
-    # 1. Strict, self-validating geographical input boundaries for the UK
-    lat: float = Field(..., ge=49.0, le=61.0, description="Target query latitude")
-    long: float = Field(..., ge=-11.0, le=2.0, description="Target query longitude")
-    # 2. Flattened metadata fields from the nearest-station resolution lookup
-    station_meta: MetOfficeLandObservationNearest | None = Field(
-        None, description="Resolved station metadata details from the live network"
+    result_bytes = get_nearest(client, record.lat, record.lon)
+    result = One[MetOfficeLandObservationStation].model_validate_json(result_bytes).item
+    return MetOfficeLandObservationRecord(
+        lat=record.lat,
+        lon=record.lon,
+        station_meta=result,
+        added_to_registry=datetime.now(UTC),
     )
-
-    # 3. Dynamic audit tracker safely placed at the very bottom
-    added_to_registry: datetime | None = Field(
-        default=None,
-        description="Audit tracking marker indicating exactly when this coordinate pair was compiled",
-    )
-
-    def __eq__(self, other: object) -> bool:
-        """
-        Compare two records for equality based solely on their latitude and longitude.
-
-        Returns:
-            True if `other` is a MetOfficeLandObservationRecord with the same `lat` and `long`, False otherwise.
-        """
-        if not isinstance(other, MetOfficeLandObservationRecord):
-            return False
-        # Two records are equal if their coordinates match, regardless of cache state
-        return self.lat == other.lat and self.long == other.long
-
-    def __hash__(self) -> int:
-        """
-        Compute a hash value for the record using its latitude and longitude.
-
-        Returns:
-            int: Hash derived from the `(lat, long)` coordinate pair.
-        """
-        return hash((self.lat, self.long))
-
-    @property
-    def is_cached(self) -> bool:
-        """
-        Return whether the record has resolved station metadata and a registry timestamp.
-
-        Returns:
-            bool: `True` if both `station_meta` and `added_to_registry` are not `None`, `False` otherwise.
-        """
-        return all((self.station_meta is not None, self.added_to_registry is not None))
-
-    def fetch_resolved_state(
-        self, client: httpx.Client
-    ) -> "MetOfficeLandObservationRecord":
-        """
-        Fetch resolved station metadata for this coordinate and return a new record populated with that metadata and a current UTC registry timestamp.
-
-        Returns:
-            MetOfficeLandObservationRecord: A new record with the same `lat` and `long`, `station_meta` set to the resolved nearest-station metadata, and `added_to_registry` set to the current UTC datetime.
-        """
-        result_bytes = get_nearest(client, self.lat, self.long)
-        result = (
-            One[MetOfficeLandObservationNearest].model_validate_json(result_bytes).item
-        )
-        return MetOfficeLandObservationRecord(
-            lat=self.lat,
-            long=self.long,
-            station_meta=result,
-            added_to_registry=datetime.now(timezone.utc),
-        )
 
 
 class MetOfficeLandObservationRegistry(BaseModel):
@@ -95,16 +46,19 @@ class MetOfficeLandObservationRegistry(BaseModel):
     @staticmethod
     def registry_path(parent_dir: Path | str | None = None) -> Path:
         """
-        Compute the filesystem path for the geohash registry file inside the given parent directory.
+        Return the path to the geohash registry file located in the given directory.
 
         Parameters:
-            parent_dir (Path | str | None): Directory in which the registry file resides; if None, uses the directory of this module.
+            parent_dir (Path | str | None): Directory to contain the registry file;
+            if None, uses the directory of this module.
 
         Returns:
-            Path: Path to "geohash_registry.json" inside `parent_dir`.
+            Path: Path pointing to "geohash_registry.json" inside the resolved
+            directory.
 
         Raises:
-            NotADirectoryError: If `parent_dir` exists and is a file rather than a directory.
+            NotADirectoryError: If `parent_dir` exists and is a file rather than a
+            directory.
         """
         if parent_dir is None:
             parent_dir = Path(__file__).parent
@@ -116,36 +70,42 @@ class MetOfficeLandObservationRegistry(BaseModel):
     @classmethod
     def load_from_disk(cls, parent_dir: Path | str | None = None) -> Self:
         """
-        Instantiate a MetOfficeLandObservationRegistry from the registry JSON on disk, or return an empty registry if the file is absent.
+        Load a MetOfficeLandObservationRegistry from the registry JSON file on disk.
 
         Parameters:
-            parent_dir (Path | str | None): Directory containing the registry file; if None the module's parent directory is used.
+            parent_dir (Path | str | None): Directory containing the registry file;
+            if None, the module's directory is used.
 
         Returns:
-            MetOfficeLandObservationRegistry: The registry loaded from disk, or an empty registry (`items=set()`) when the registry file does not exist.
+            MetOfficeLandObservationRegistry: The registry loaded from disk,
+            or an empty registry when the registry file does not exist.
         """
         path = cls.registry_path(parent_dir)
         if not path.exists():
             return cls(items=set())
 
-        with open(path, "r") as f:
+        with open(path) as f:
             return cls.model_validate_json(f.read())
 
     def save_to_disk(self, parent_dir: Path | str | None = None) -> None:
         """
         Persist the registry to disk in an atomic, crash-safe manner.
 
-        Writes the registry as pretty-printed JSON to a temporary file in the same directory, fsyncs the temp file to ensure data is flushed to disk, and then atomically replaces the target registry file with the temp file. On error, the temporary file is removed before the exception is propagated.
+        Writes the registry as pretty-printed JSON to a file in the parent_dir,
+        fsyncs the temp file to ensure data is flushed to disk, and then atomically
+        replaces the target registry file with the temp file.
+        On error, the temporary file is removed before the exception is propagated.
 
         Parameters:
-            parent_dir (Path | str | None): Directory in which to store the registry file; if `None`, the module directory is used to locate `geohash_registry.json`.
+            parent_dir (Path | str | None): Directory to store the registry file in;
+            if `None`, the module directory is used to locate `geohash_registry.json`.
         """
         path = self.registry_path(parent_dir)
         # Write to a temporary file in the same directory
         temp_path = path.with_suffix(".tmp")
         try:
             with open(temp_path, "w") as f:
-                # Writes pretty-printed, standardized JSON for clean Git diff trackability
+                # Writes pretty-printed, standardized JSON for clean Git diff's
                 f.write(self.model_dump_json(indent=2))
                 f.flush()
                 os.fsync(f.fileno())
@@ -159,42 +119,47 @@ class MetOfficeLandObservationRegistry(BaseModel):
 
     def update_all_uncached_items(self, client: httpx.Client) -> None:
         """
-        Resolve and cache any registry records that are not yet populated with station metadata.
+        Resolve and cache registry records that are not yet populated with
+        station metadata.
 
-        For each item in the registry, replaces uncached records with a resolved copy obtained using the provided HTTP client; items that are already cached are kept unchanged. After this call, `self.items` is updated with the new set of records.
+        For each item in the registry, replaces uncached records with a resolved copy
+        obtained using the provided HTTP client; items that are already cached are kept
+        unchanged. After this call, `self.items` is updated with the new set of records.
 
         Parameters:
-            client (httpx.Client): HTTP client used to fetch nearest-station data for uncached records.
+            client (httpx.Client): HTTP client used to fetch nearest-station data for
+            uncached records.
         """
         updated_items = set()
         for item in self.items:
             if not item.is_cached:
                 # Trigger network resolution and append the clean object copy
-                updated_items.add(item.fetch_resolved_state(client))
+                updated_items.add(fetch_resolved_state(item, client))
             else:
                 updated_items.add(item)
         self.items = updated_items
 
-    def register_location(self, lat: float, long: float) -> None:
+    def register_location(self, lat: float, lon: float) -> None:
         """
-        Register a coordinate pair in the registry; if the same latitude/longitude is already present, do nothing.
+        Add a geographic coordinate to the registry if a matching record is not
+        already present.
 
         Parameters:
-            lat (float): Latitude in degrees; must be between 49.0 and 61.0.
-            long (float): Longitude in degrees; must be between -11.0 and 2.0.
-
+            lat (float): Latitude in degrees; valid range is 49.0 to 61.0.
+            lon (float): Longitude in degrees; valid range is -11.0 to 2.0.
         """
-        new_record = MetOfficeLandObservationRecord(lat=lat, long=long)
-        # Because we custom hashed the model, this checks coordinate duplicates instantly!
+        new_record = MetOfficeLandObservationRecord(lat=lat, lon=lon)
         if new_record not in self.items:
             self.items.add(new_record)
 
     def get_geohash_set(self) -> set[str]:
         """
-        Return the set of geohash identifiers from registry items that have resolved station metadata.
+        Collects geohash identifiers for registry items that have resolved
+        station metadata.
 
         Returns:
-            set[str]: Geohash strings from each item's `station_meta.geohash` for items where `station_meta` is present.
+            set[str]: Geohash strings taken from `item.station_meta.geohash` for
+                      each item where `station_meta` is present.
         """
         return {item.station_meta.geohash for item in self.items if item.station_meta}
 

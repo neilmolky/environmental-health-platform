@@ -7,7 +7,7 @@ wheels/
 *.egg-info
 .coverage
 .*_cache/
-.coverage
+coverage.xml
 
 # Virtual environments
 .venv

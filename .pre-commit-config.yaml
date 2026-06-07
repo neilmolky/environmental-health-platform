@@ -5,21 +5,21 @@ repos:
     hooks:
       - id: conventional-pre-commit
         stages: [commit-msg]
-        args: [--scopes, 'infra,backend,api,frontend', --verbose, chore, ci, docs, feat, fix, refactor, test, style, revert]
+        args: [--scopes, 'infra,backend,api,frontend,mock_services,utils', --verbose, build, chore, ci, docs, feat, fix, refactor, test, style, revert]
 
   # 2. Automated Python Code Quality Guard (Ruff)
   - repo: local
     hooks:
       - id: ruff-check
         name: ruff check
-        entry: uv run ruff check --fix backend/ api/ frontend/
+        entry: uv run ruff check --fix
         language: system
         types: [python]
         stages: [pre-commit]
 
       - id: ruff-format
         name: ruff format
-        entry: uv run ruff format backend/ api/ frontend/
+        entry: uv run ruff format
         language: system
         types: [python]
         stages: [pre-commit]

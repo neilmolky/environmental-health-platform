@@ -1,12 +1,15 @@
 import os
-from collections.abc import AsyncGenerator
+from collections.abc import AsyncGenerator, Generator
 from contextlib import asynccontextmanager, contextmanager
-from datetime import datetime
-from typing import Generator
 
 import httpx
-from pydantic import BaseModel, Field, HttpUrl, SecretStr
+from pydantic import Field, HttpUrl, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from utils.met_office_models import (
+    LatLon,
+    MetOfficeLandObservation,
+    MetOfficeLandObservationStation,
+)
 from utils.pydantic_utils import One, Some
 
 MET_OFFICE_LIVE_URL = "https://data.hub.api.metoffice.gov.uk"
@@ -24,7 +27,7 @@ class _MetOfficeClientConfig(BaseSettings):
     """
 
     model_config = SettingsConfigDict(
-        env_file=".env",  # Reads from a local .env file if present. register an application to use
+        env_file=".env",  # Reads from a local .env file if present.
         env_file_encoding="utf-8",
         extra="ignore",
     )
@@ -37,13 +40,13 @@ class _MetOfficeClientConfig(BaseSettings):
 
     def add_auth_header(self, request: httpx.Request) -> httpx.Request:
         """
-        Attach the configured API key to the provided HTTPX request's headers.
+        Attach the configured API key to the given HTTPX request's headers.
 
         Parameters:
             request (httpx.Request): The outgoing HTTP request to modify.
 
         Returns:
-            httpx.Request: The same request instance with its "apikey" header set to the configured secret.
+            httpx.Request: The same request instance with its "apikey" header set.
         """
         request.headers["apikey"] = self.secret.get_secret_value()
         return request
@@ -51,10 +54,12 @@ class _MetOfficeClientConfig(BaseSettings):
     @asynccontextmanager
     async def async_api_client(self) -> AsyncGenerator[httpx.AsyncClient]:
         """
-        Create an async context manager that yields an httpx.AsyncClient configured with the Met Office base URL and API key header.
+        Provide an HTTPX async client preconfigured for Met Office requests.
 
         Returns:
-            httpx.AsyncClient: A configured HTTPX async client instance.
+            httpx.AsyncClient: An async HTTP client with `base_url` set to the
+            configured Met Office URL, a per-request `apikey` header injected
+            from the client's secret, and `Accept: application/json` set.
         """
         async with httpx.AsyncClient(
             base_url=self.base_url.encoded_string(),
@@ -68,9 +73,10 @@ class _MetOfficeClientConfig(BaseSettings):
     @contextmanager
     def api_client(self) -> Generator[httpx.Client]:
         """
-        Provide a synchronous HTTP client configured for the Met Office API as a context manager.
+        Create a synchronous HTTP client configured for the Met Office API.
 
-        The client uses this config's `base_url`, injects the API key via the `apikey` header on each request, and sets `Accept: application/json`. The client is automatically closed when the context manager exits.
+        The client injects the API key via the `apikey` header on each request
+        and sets `Accept: application/json`.
 
         Returns:
             httpx.Client: A configured synchronous HTTP client instance.
@@ -90,10 +96,15 @@ def met_office_client_factory(use_mock: bool | None = None) -> _MetOfficeClientC
     Create a configured Met Office client config for mock or live use.
 
     Parameters:
-        use_mock (bool | None): When True, return a config primed for mock usage. When False, return a config populated from environment/.env. When None (default), decide based on presence of the `MET_OFFICE_MOCK_URL` environment variable.
+        use_mock (bool | None): When True, return a config primed for mock usage.
+        When False, return a config populated from environment/.env.
+        When None (default), decide based on presence of the
+        `MET_OFFICE_MOCK_URL` environment variable.
 
     Returns:
-        _MetOfficeClientConfig: A configured client object. If `use_mock` is True, the returned config is populated with a fixed secret value for mocking; otherwise it is populated from environment/.env.
+        _MetOfficeClientConfig: A configured client object. If `use_mock` is True,
+        returned config is populated with a fixed secret value for mocking;
+        otherwise it is populated from environment/.env.
     """
     if use_mock is None:
         use_mock = os.getenv("MET_OFFICE_MOCK_URL") is not None
@@ -102,46 +113,6 @@ def met_office_client_factory(use_mock: bool | None = None) -> _MetOfficeClientC
             {"MET_OFFICE_CLIENT_SECRET": "apikey"}
         )
     return _MetOfficeClientConfig()
-
-
-class MetOfficeLandObservationNearest(BaseModel):
-    """/observation-land/1/nearest"""
-
-    geohash: str
-    """Geohash of the observation location"""
-    area: str
-    """Location area"""
-    region: str | None
-    """Region code for UK locations"""
-    country: str | None
-    """The country of the location"""
-    olson_time_zone: str | None
-    """Olson time zone string of location"""
-
-
-class MetOfficeLandObservationGeohash(BaseModel):
-    """/observation-land/1/{geohash}"""
-
-    datetime: datetime
-    """Date of the observation."""
-    humidity: int | None
-    """Probability as a percentage of 100."""
-    mslp: int | None
-    """Mean surface level pressure in hPA."""
-    pressure_tendency: str | None
-    """Pressure tendency representing Rising, Falling or Steady."""
-    temperature: float | None
-    """Air temperature in °C."""
-    visibility: int | None
-    """Visibility in metres."""
-    weather_code: int | None
-    """Numerical code for the weather symbol."""
-    wind_direction: str | None
-    """Direction the wind is travelling from in 16 point compass notation."""
-    wind_gust: float | None
-    """Wind gust speed in m/s."""
-    wind_speed: float | None
-    """Wind speed in m/s."""
 
 
 async def get_observation_async(
@@ -197,8 +168,8 @@ def get_nearest(
     Raises:
         httpx.HTTPStatusError: If the HTTP response status is not 2xx.
     """
-    params = {"lat": lat, "lon": lon}
-    response = client.get("/observation-land/1/nearest", params=params)
+    params = LatLon.model_validate({"lat": lat, "lon": lon})
+    response = client.get("/observation-land/1/nearest", params=params.model_dump())
     response.raise_for_status()
     return response.content
 
@@ -207,12 +178,12 @@ if __name__ == "__main__":
     cfg = met_office_client_factory()
     with cfg.api_client() as client:
         nearest = (
-            One[MetOfficeLandObservationNearest]
+            One[MetOfficeLandObservationStation]
             .model_validate_json(get_nearest(client, 50.72, -3.53))
             .item
         )
         observation = (
-            Some[MetOfficeLandObservationGeohash]
+            Some[MetOfficeLandObservation]
             .model_validate_json(get_observation(client, nearest.geohash))
             .root
         )
