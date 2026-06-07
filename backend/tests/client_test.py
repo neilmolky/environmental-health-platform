@@ -3,7 +3,7 @@ from collections.abc import AsyncGenerator, Generator
 import httpx
 import pytest
 from backend.bronze.met_office.client import (
-    MET_OFFICE_LIVE_URL,
+    MET_OFFICE_USER_URL,
     MetOfficeLandObservationGeohash,
     MetOfficeLandObservationNearest,
     _MetOfficeClientConfig,
@@ -30,7 +30,7 @@ class TestMetOfficeClient:
             pytest.fail(
                 "Missing live infrastructure credentials! "
                 "To run this test, set MET_OFFICE_CLIENT_SECRET. "
-                f"Register for credentials here {MET_OFFICE_LIVE_URL}. "
+                f"Register for credentials here {MET_OFFICE_USER_URL}. "
             )
 
     @pytest.fixture
