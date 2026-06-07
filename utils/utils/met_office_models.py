@@ -6,7 +6,8 @@ from pydantic import BaseModel, Field
 
 class LatLon(BaseModel, frozen=True):
     """
-    Helper Model, validates latitude and longitude values against permitted latitude and longitudes defined by Met Office Api
+    Helper Model, validates latitude and longitude values against permitted latitude and
+    longitudes defined by Met Office Api
 
     frozen to enable hashing
     """
@@ -15,11 +16,11 @@ class LatLon(BaseModel, frozen=True):
     lon: float = Field(..., ge=-180.0, le=180.0, description="Target query longitude")
 
     @property
-    def lat_radians(self):
+    def lat_radians(self) -> float:
         return math.radians(self.lat)
 
     @property
-    def lon_radians(self):
+    def lon_radians(self) -> float:
         return math.radians(self.lon)
 
     def haversine_distance(self, other: "LatLon") -> float:
@@ -92,7 +93,10 @@ class MetOfficeLandObservationRecord(LatLon, frozen=True):
     )
     added_to_registry: datetime | None = Field(
         default=None,
-        description="Audit tracking marker indicating exactly when this coordinate pair was compiled",
+        description=(
+            "Audit tracking marker indicating exactly when this coordinate pair "
+            "was compiled"
+        ),
     )
 
     def __eq__(self, other: object) -> bool:
@@ -100,7 +104,8 @@ class MetOfficeLandObservationRecord(LatLon, frozen=True):
         Compare two records for equality based solely on their latitude and longitude.
 
         Returns:
-            True if `other` is a MetOfficeLandObservationRecord with the same `lat` and `lon`, False otherwise.
+            True if `other` is a MetOfficeLandObservationRecord with the same `lat` and
+            `lon`, False otherwise.
         """
         if not isinstance(other, MetOfficeLandObservationRecord):
             return False
@@ -119,9 +124,10 @@ class MetOfficeLandObservationRecord(LatLon, frozen=True):
     @property
     def is_cached(self) -> bool:
         """
-        Return whether the record has resolved station metadata and a registry timestamp.
+        a cached record must have resolved station metadata and a registry timestamp.
 
         Returns:
-            bool: `True` if both `station_meta` and `added_to_registry` are not `None`, `False` otherwise.
+            bool: `True` if both `station_meta` and `added_to_registry` are not `None`,
+            otherwise `False`.
         """
         return (self.station_meta is not None) and (self.added_to_registry is not None)

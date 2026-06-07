@@ -11,7 +11,7 @@ def get_storage_client() -> fsspec.AbstractFileSystem:
 
     match backend_type:
         case "aws":
-            # Point explicitly to the local MinIO container endpoint configured in Compose
+            # Point explicitly to the local MinIO container configured in Compose
             return fsspec.filesystem(
                 "s3",
                 client_kwargs={"endpoint_url": os.getenv("AWS_ENDPOINT_URL")},

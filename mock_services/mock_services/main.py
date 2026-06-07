@@ -1,5 +1,5 @@
 import random
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Annotated
 
 from fastapi import FastAPI, HTTPException, Query, Security, status
@@ -18,7 +18,9 @@ API_KEY_HEADER = APIKeyHeader(name="apikey", auto_error=True)
 VALID_API_KEY = "apikey"
 
 
-async def validate_met_office_auth(api_key: Annotated[str, Security(API_KEY_HEADER)]):
+async def validate_met_office_auth(
+    api_key: Annotated[str, Security(API_KEY_HEADER)],
+) -> str:
     """
     Validates that the incoming request header matches the mock credential
     provided by met_office_client_factory().
@@ -26,7 +28,11 @@ async def validate_met_office_auth(api_key: Annotated[str, Security(API_KEY_HEAD
     if api_key != VALID_API_KEY:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Unauthorized: Mock API key mismatch. Expected mock credentials: 'apikey'. Live Credentials should never be injected into mocks.",
+            detail=(
+                "Unauthorized: Mock API key mismatch. "
+                "Expected mock credentials: 'apikey'. "
+                "Live Credentials should never be injected into mocks."
+            ),
         )
     return api_key
 
@@ -66,23 +72,19 @@ class MetOfficeLandObservationNearestFactory(
 
 
 # --- 3. STATEFUL RUNTIME DATABASE ---
-# Generate 5 completely valid, randomized observation stations instantly on startup
 MOCK_STATION_COORDINATES: list[LatLon] = LatLonFactory.batch(size=5)
 MOCK_GEOHASH_DB: dict[LatLon, list[MetOfficeLandObservationNearest]] = {
     coord: MetOfficeLandObservationNearestFactory.batch(size=1)
     for coord in MOCK_STATION_COORDINATES
 }
-# Generate 48 hours worth of randomized observations for each station instantly on startup
 MOCK_OBSERVATION_DB: dict[str, list[MetOfficeLandObservationGeohash]] = {}
 
-# Capture the exact current baseline time
-now = datetime.now(timezone.utc)
+now = datetime.now(UTC)
 
 for record in MOCK_GEOHASH_DB.values():
     geohash_key = record[0].geohash
     station_history = []
 
-    # Loop exactly 48 times to build an hourly historical series
     for hour_offset in range(48):
         # Calculate the exact timestamp for this hour slot (moving backwards)
         # Offset 0 is "now", offset 47 is "47 hours ago"
@@ -91,7 +93,7 @@ for record in MOCK_GEOHASH_DB.values():
         # Build a single randomized mock payload using Polyfactory,
         # but explicitly override the 'datetime' field with our calculated sequence!
         mock_observation = MetOfficeLandObservationGeohashFactory.build(
-            datetime=target_timestamp  # Supplying this cancels Polyfactory's random generator
+            datetime=target_timestamp
         )
 
         station_history.append(mock_observation)
@@ -106,7 +108,9 @@ for record in MOCK_GEOHASH_DB.values():
     response_model=list[MetOfficeLandObservationNearest],
     status_code=status.HTTP_200_OK,
 )
-async def get_nearest(coordinates: Annotated[LatLon, Query()]):
+async def get_nearest(
+    coordinates: Annotated[LatLon, Query()],
+) -> list[MetOfficeLandObservationNearest]:
     key = min(MOCK_STATION_COORDINATES, key=coordinates.haversine_distance)
     return MOCK_GEOHASH_DB[key]
 
@@ -116,7 +120,7 @@ async def get_nearest(coordinates: Annotated[LatLon, Query()]):
     response_model=list[MetOfficeLandObservationGeohash],
     status_code=status.HTTP_200_OK,
 )
-async def get_observation_async(geohash: str):
+async def get_observation_async(geohash: str) -> list[MetOfficeLandObservationGeohash]:
     if geohash not in MOCK_OBSERVATION_DB:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

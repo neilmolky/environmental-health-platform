@@ -1,7 +1,6 @@
 import os
-from collections.abc import AsyncGenerator
+from collections.abc import AsyncGenerator, Generator
 from contextlib import asynccontextmanager, contextmanager
-from typing import Generator
 
 import httpx
 from pydantic import Field, HttpUrl, SecretStr
@@ -28,7 +27,7 @@ class _MetOfficeClientConfig(BaseSettings):
     """
 
     model_config = SettingsConfigDict(
-        env_file=".env",  # Reads from a local .env file if present. register an application to use
+        env_file=".env",  # Reads from a local .env file if present.
         env_file_encoding="utf-8",
         extra="ignore",
     )
@@ -47,7 +46,7 @@ class _MetOfficeClientConfig(BaseSettings):
             request (httpx.Request): The outgoing HTTP request to modify.
 
         Returns:
-            httpx.Request: The same request instance with its "apikey" header set to the configured secret.
+            httpx.Request: The same request instance with its "apikey" header set.
         """
         request.headers["apikey"] = self.secret.get_secret_value()
         return request
@@ -55,7 +54,8 @@ class _MetOfficeClientConfig(BaseSettings):
     @asynccontextmanager
     async def async_api_client(self) -> AsyncGenerator[httpx.AsyncClient]:
         """
-        Create an async context manager that yields an httpx.AsyncClient configured with the Met Office base URL and API key header.
+        Create an async context manager that yields an httpx.AsyncClient configured
+        with the Met Office base URL and API key header.
 
         Returns:
             httpx.AsyncClient: A configured HTTPX async client instance.
@@ -72,9 +72,13 @@ class _MetOfficeClientConfig(BaseSettings):
     @contextmanager
     def api_client(self) -> Generator[httpx.Client]:
         """
-        Provide a synchronous HTTP client configured for the Met Office API as a context manager.
+        Provide a synchronous HTTP client configured for the Met Office API
+        as a context manager.
 
-        The client uses this config's `base_url`, injects the API key via the `apikey` header on each request, and sets `Accept: application/json`. The client is automatically closed when the context manager exits.
+        The client uses this config's `base_url`,
+        injects the API key via the `apikey` header on each request,
+        and sets `Accept: application/json`.
+        The client is automatically closed when the context manager exits.
 
         Returns:
             httpx.Client: A configured synchronous HTTP client instance.
@@ -94,10 +98,15 @@ def met_office_client_factory(use_mock: bool | None = None) -> _MetOfficeClientC
     Create a configured Met Office client config for mock or live use.
 
     Parameters:
-        use_mock (bool | None): When True, return a config primed for mock usage. When False, return a config populated from environment/.env. When None (default), decide based on presence of the `MET_OFFICE_MOCK_URL` environment variable.
+        use_mock (bool | None): When True, return a config primed for mock usage.
+        When False, return a config populated from environment/.env.
+        When None (default), decide based on presence of the
+        `MET_OFFICE_MOCK_URL` environment variable.
 
     Returns:
-        _MetOfficeClientConfig: A configured client object. If `use_mock` is True, the returned config is populated with a fixed secret value for mocking; otherwise it is populated from environment/.env.
+        _MetOfficeClientConfig: A configured client object. If `use_mock` is True,
+        returned config is populated with a fixed secret value for mocking;
+        otherwise it is populated from environment/.env.
     """
     if use_mock is None:
         use_mock = os.getenv("MET_OFFICE_MOCK_URL") is not None

@@ -46,7 +46,7 @@ class TestMetOfficeClient:
             yield c
 
     @pytest.mark.integration
-    def test_endpoints_for_schema_drift(self, client: httpx.Client):
+    def test_endpoints_for_schema_drift(self, client: httpx.Client) -> None:
         # test simply runs with the pydantic validation to identify schema drift
         # might raise a connection error or validation error causing the test to fail
         nearest = (

@@ -18,6 +18,25 @@ members = [
     "mock_services",
 ]
 
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # Pyflakes (Default syntax bugs)
+    "B",    # flake8-bugbear (Design / Logic traps)
+    "I",    # isort (Consistent, sorted import statements)
+    "UP",   # pyupgrade (Modern Python syntax enforcer)
+    "ANN",  # flake8-annotations (Strict function type hinting)
+    "DTZ",  # flake8-datetimez (Forbids timezone-naive datetimes)
+    "SIM",  # flake8-simplify (Code structural streamlining)
+    "BLE",  # flake8-blind-except (Blocks broad catch-all exceptions)
+]
+
+[tool.ruff.lint.flake8-annotations]
+allow-star-arg-any = false
+ignore-fully-untyped = false
+suppress-none-returning = false
+
 [tool.ty.environment]
 # Points ty directly to the unified root virtual environment site-packages
 python = "./.venv/bin/python"

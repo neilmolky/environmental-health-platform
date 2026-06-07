@@ -5,7 +5,8 @@ from pydantic import BaseModel, Field, RootModel
 
 class One[T: BaseModel](RootModel[tuple[T]]):
     """
-    Helper Model, useful to unwrap a single item from a list and validate that it must be exactly one item of type T: BaseModel
+    Helper Model for any genertc base model that is wrapped in a list,
+    validates that the response has exactly one item of type T: BaseModel
     """
 
     @property
@@ -21,7 +22,8 @@ class One[T: BaseModel](RootModel[tuple[T]]):
 
 class Some[T: BaseModel](RootModel[list[T]]):
     """
-    Helper Model, useful to unwrap a list and validate that it has at least one item of type T: BaseModel
+    Helper Model for any genertc base model that is wrapped in a list,
+    validates that the response has at least one item of type T: BaseModel
     """
 
     root: list[T] = Field(min_length=1)
@@ -60,7 +62,8 @@ class Some[T: BaseModel](RootModel[list[T]]):
         Retrieve the element at the given index from the wrapped list.
 
         Parameters:
-            index (int): Position of the element to retrieve; negative indices count from the end.
+            index (int): Position of the element to retrieve;
+                negative indices count from the end.
 
         Returns:
             T: The element at the specified index.
