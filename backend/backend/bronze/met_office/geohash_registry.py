@@ -5,6 +5,7 @@ from typing import Self
 
 import httpx
 from backend.bronze.met_office.client import (
+    LatLon,
     MetOfficeLandObservationNearest,
     One,
     get_nearest,
@@ -12,21 +13,15 @@ from backend.bronze.met_office.client import (
 from pydantic import BaseModel, Field
 
 
-class MetOfficeLandObservationRecord(BaseModel, frozen=True):
+class MetOfficeLandObservationRecord(LatLon, frozen=True):
     """
     The unified, version-controlled compilation target.
     Uses composition to cleanly separate input targets from network resolutions.
     """
 
-    # 1. Strict, self-validating geographical input boundaries for the UK
-    lat: float = Field(..., ge=49.0, le=61.0, description="Target query latitude")
-    long: float = Field(..., ge=-11.0, le=2.0, description="Target query longitude")
-    # 2. Flattened metadata fields from the nearest-station resolution lookup
     station_meta: MetOfficeLandObservationNearest | None = Field(
         None, description="Resolved station metadata details from the live network"
     )
-
-    # 3. Dynamic audit tracker safely placed at the very bottom
     added_to_registry: datetime | None = Field(
         default=None,
         description="Audit tracking marker indicating exactly when this coordinate pair was compiled",
@@ -37,21 +32,21 @@ class MetOfficeLandObservationRecord(BaseModel, frozen=True):
         Compare two records for equality based solely on their latitude and longitude.
 
         Returns:
-            True if `other` is a MetOfficeLandObservationRecord with the same `lat` and `long`, False otherwise.
+            True if `other` is a MetOfficeLandObservationRecord with the same `lat` and `lon`, False otherwise.
         """
         if not isinstance(other, MetOfficeLandObservationRecord):
             return False
         # Two records are equal if their coordinates match, regardless of cache state
-        return self.lat == other.lat and self.long == other.long
+        return self.lat == other.lat and self.lon == other.lon
 
     def __hash__(self) -> int:
         """
         Compute a hash value for the record using its latitude and longitude.
 
         Returns:
-            int: Hash derived from the `(lat, long)` coordinate pair.
+            int: Hash derived from the `(lat, lon)` coordinate pair.
         """
-        return hash((self.lat, self.long))
+        return hash((self.lat, self.lon))
 
     @property
     def is_cached(self) -> bool:
@@ -61,7 +56,7 @@ class MetOfficeLandObservationRecord(BaseModel, frozen=True):
         Returns:
             bool: `True` if both `station_meta` and `added_to_registry` are not `None`, `False` otherwise.
         """
-        return all((self.station_meta is not None, self.added_to_registry is not None))
+        return (self.station_meta is not None) and (self.added_to_registry is not None)
 
     def fetch_resolved_state(
         self, client: httpx.Client
@@ -70,15 +65,15 @@ class MetOfficeLandObservationRecord(BaseModel, frozen=True):
         Fetch resolved station metadata for this coordinate and return a new record populated with that metadata and a current UTC registry timestamp.
 
         Returns:
-            MetOfficeLandObservationRecord: A new record with the same `lat` and `long`, `station_meta` set to the resolved nearest-station metadata, and `added_to_registry` set to the current UTC datetime.
+            MetOfficeLandObservationRecord: A new record with the same `lat` and `lon`, `station_meta` set to the resolved nearest-station metadata, and `added_to_registry` set to the current UTC datetime.
         """
-        result_bytes = get_nearest(client, self.lat, self.long)
+        result_bytes = get_nearest(client, self.lat, self.lon)
         result = (
             One[MetOfficeLandObservationNearest].model_validate_json(result_bytes).item
         )
         return MetOfficeLandObservationRecord(
             lat=self.lat,
-            long=self.long,
+            lon=self.lon,
             station_meta=result,
             added_to_registry=datetime.now(timezone.utc),
         )
@@ -175,7 +170,7 @@ class MetOfficeLandObservationRegistry(BaseModel):
                 updated_items.add(item)
         self.items = updated_items
 
-    def register_location(self, lat: float, long: float) -> None:
+    def register_location(self, lat: float, lon: float) -> None:
         """
         Register a coordinate pair in the registry; if the same latitude/longitude is already present, do nothing.
 
@@ -184,7 +179,7 @@ class MetOfficeLandObservationRegistry(BaseModel):
             long (float): Longitude in degrees; must be between -11.0 and 2.0.
 
         """
-        new_record = MetOfficeLandObservationRecord(lat=lat, long=long)
+        new_record = MetOfficeLandObservationRecord(lat=lat, lon=lon)
         # Because we custom hashed the model, this checks coordinate duplicates instantly!
         if new_record not in self.items:
             self.items.add(new_record)

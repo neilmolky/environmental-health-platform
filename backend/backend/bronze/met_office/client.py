@@ -1,3 +1,4 @@
+import math
 import os
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager, contextmanager
@@ -179,6 +180,43 @@ def get_observation(client_session: httpx.Client, geohash: str) -> bytes:
     return response.content
 
 
+class LatLon(BaseModel, frozen=True):
+    """
+    Helper Model, validates latitude and longitude values against permitted latitude and longitudes defined by Met Office Api
+
+    frozen to enable hashing
+    """
+
+    lat: float = Field(..., ge=-90.0, le=90.0, description="Target query latitude")
+    lon: float = Field(..., ge=-180.0, le=180.0, description="Target query longitude")
+
+    @property
+    def lat_radians(self):
+        return math.radians(self.lat)
+
+    @property
+    def lon_radians(self):
+        return math.radians(self.lon)
+
+    def haversine_distance(self, other: "LatLon") -> float:
+        """Calculates the distance in kilometers between two geographic points."""
+        dlat = other.lat_radians - self.lat_radians
+        dlon = other.lon_radians - self.lon_radians
+
+        # Haversine core math
+        a = (
+            math.sin(dlat / 2) ** 2
+            + math.cos(self.lat_radians)
+            * math.cos(other.lat_radians)
+            * math.sin(dlon / 2) ** 2
+        )
+        c = 2 * math.asin(math.sqrt(a))
+
+        # Earth's radius in kilometers
+        earth_radius_km = 6371.0
+        return round(c * earth_radius_km, 2)
+
+
 def get_nearest(
     client: httpx.Client,
     lat: float,
@@ -197,8 +235,8 @@ def get_nearest(
     Raises:
         httpx.HTTPStatusError: If the HTTP response status is not 2xx.
     """
-    params = {"lat": lat, "lon": lon}
-    response = client.get("/observation-land/1/nearest", params=params)
+    params = LatLon.model_validate({"lat": lat, "lon": lon})
+    response = client.get("/observation-land/1/nearest", params=params.model_dump())
     response.raise_for_status()
     return response.content
 

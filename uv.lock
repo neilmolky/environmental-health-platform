@@ -1728,16 +1728,22 @@ name = "mock-services"
 version = "0.1.0"
 source = { editable = "mock_services" }
 dependencies = [
+    { name = "backend" },
     { name = "fastapi" },
     { name = "httpx" },
+    { name = "polyfactory" },
+    { name = "pydantic" },
     { name = "utils" },
     { name = "uvicorn" },
 ]
 
 [package.metadata]
 requires-dist = [
+    { name = "backend", editable = "backend" },
     { name = "fastapi", specifier = ">=0.136.3" },
     { name = "httpx", specifier = ">=0.28.1" },
+    { name = "polyfactory", specifier = ">=3.3.0" },
+    { name = "pydantic", specifier = ">=2.13.4" },
     { name = "utils", editable = "utils" },
     { name = "uvicorn", specifier = ">=0.48.0" },
 ]

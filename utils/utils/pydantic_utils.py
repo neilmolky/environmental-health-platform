@@ -4,6 +4,10 @@ from pydantic import BaseModel, Field, RootModel
 
 
 class One[T: BaseModel](RootModel[tuple[T]]):
+    """
+    Helper Model, useful to unwrap a single item from a list and validate that it must be exactly one item of type T: BaseModel
+    """
+
     @property
     def item(self) -> T:
         """
@@ -16,6 +20,10 @@ class One[T: BaseModel](RootModel[tuple[T]]):
 
 
 class Some[T: BaseModel](RootModel[list[T]]):
+    """
+    Helper Model, useful to unwrap a a list and validate that it has at least one item of type T: BaseModel
+    """
+
     root: list[T] = Field(min_length=1)
 
     @property
