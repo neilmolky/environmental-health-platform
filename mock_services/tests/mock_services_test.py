@@ -22,7 +22,7 @@ def client() -> TestClient:
 class TestMetOfficeMockApi:
     def test_missing_api_key_header(self, client: TestClient) -> None:
         """
-        Endpoints should return 403 Forbidden if the header is missing.
+        Endpoints should return 401 Unauthorized if the header is missing.
         """
         response: httpx.Response = client.get(
             "/observation-land/1/nearest?latitude=51.5074&longitude=-0.1278"

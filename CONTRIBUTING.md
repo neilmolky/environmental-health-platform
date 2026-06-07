@@ -35,9 +35,9 @@ This project was built with an oppinion on tools. The choices reflect the follow
 
 Thank you for contributing to the Environmental Public Health Platform! The following code quality and commit standards are enforced at CI. pre-commit checks ensure no commit can be made if it doesn't pass code linting standards. Pull requests to `main` will check container's successfully build, tests successfully run, test coverage is beyond the set threshold, and security vulnerabilities are patched.
 
-### Commands run in CI
-The following commands which run in CI can be run locally to validate your build prior to each commit.
-```bash
+## Commands run in CI
+The following commands which run in CI can be run locally to validate your build before each commit.
+
 uv sync                            # ensure dependencies are up to date
 uv run pre-commit run --all-files  # runs ruff, ty and other linting tools
 uv run pytest -m 'not integration' # 

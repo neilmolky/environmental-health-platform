@@ -38,14 +38,14 @@ jobs:
         env:
           MET_OFFICE_CLIENT_SECRET: ${{ secrets.MET_OFFICE_CLIENT_SECRET }}
         run: |
-          uv run pytest -m integration -m 'not mocks'
+          uv run pytest -m integration
 
       - name: Run Test Suite with Coverage
         # TODO: sepperate mocks from integration tests, only run mocks with coverage 
         env:
           MET_OFFICE_CLIENT_SECRET: ${{ secrets.MET_OFFICE_CLIENT_SECRET }}
         run: |
-          uv run pytest -m 'not integration' -m 'not mocks' --cov-report=xml
+          uv run pytest -m "not integration and not mocks" --cov-report=xml
 
       - name: Generate PR Coverage Comment
         uses: py-cov-action/python-coverage-comment-action@v3

@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field, RootModel
 
 class One[T: BaseModel](RootModel[tuple[T]]):
     """
-    Helper Model for any genertc base model that is wrapped in a list,
+    Helper Model for any generic base model that is wrapped in a list,
     validates that the response has exactly one item of type T: BaseModel
     """
 
@@ -22,7 +22,7 @@ class One[T: BaseModel](RootModel[tuple[T]]):
 
 class Some[T: BaseModel](RootModel[list[T]]):
     """
-    Helper Model for any genertc base model that is wrapped in a list,
+    Helper Model for any generic base model that is wrapped in a list,
     validates that the response has at least one item of type T: BaseModel
     """
 
