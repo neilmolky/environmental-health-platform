@@ -145,7 +145,9 @@ class MetOfficeLandObservationRegistry(BaseModel):
 
         Parameters:
             lat (float): Latitude in degrees; must be between 49.0 and 61.0.
-            long (float): Longitude in degrees; must be between -11.0 and 2.0.
+        Parameters:
+            lat (float): Latitude in degrees; must be between 49.0 and 61.0.
+            lon (float): Longitude in degrees; must be between -11.0 and 2.0.
 
         """
         new_record = MetOfficeLandObservationRecord(lat=lat, lon=lon)
