@@ -21,7 +21,7 @@ class One[T: BaseModel](RootModel[tuple[T]]):
 
 class Some[T: BaseModel](RootModel[list[T]]):
     """
-    Helper Model, useful to unwrap a a list and validate that it has at least one item of type T: BaseModel
+    Helper Model, useful to unwrap a list and validate that it has at least one item of type T: BaseModel
     """
 
     root: list[T] = Field(min_length=1)

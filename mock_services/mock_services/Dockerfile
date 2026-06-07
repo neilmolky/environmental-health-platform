@@ -7,7 +7,9 @@ COPY mock_services/pyproject.toml ./mock_services/
 COPY utils/pyproject.toml ./utils/
 
 RUN apt-get update && apt-get upgrade -y \
-    && --mount=type=cache,target=/root/.cache/uv \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-dev --no-install-workspace --package mock_services
 
 # Copy source code

@@ -1,6 +1,6 @@
 import random
 from datetime import datetime, timedelta, timezone
-from typing import Annotated, List
+from typing import Annotated
 
 from fastapi import FastAPI, HTTPException, Query, Security, status
 from fastapi.security import APIKeyHeader
@@ -96,12 +96,14 @@ for record in MOCK_GEOHASH_DB.values():
 
         station_history.append(mock_observation)
 
+    MOCK_OBSERVATION_DB[geohash_key] = station_history
+
 
 # --- 4. MOCK API ENDPOINTS ---
 # literal endpoint comes first!
 @app.get(
     "/observation-land/1/nearest",
-    response_model=List[MetOfficeLandObservationNearest],
+    response_model=list[MetOfficeLandObservationNearest],
     status_code=status.HTTP_200_OK,
 )
 async def get_nearest(coordinates: Annotated[LatLon, Query()]):
@@ -111,7 +113,7 @@ async def get_nearest(coordinates: Annotated[LatLon, Query()]):
 
 @app.get(
     "/observation-land/1/{geohash}",
-    response_model=List[MetOfficeLandObservationNearest],
+    response_model=list[MetOfficeLandObservationGeohash],
     status_code=status.HTTP_200_OK,
 )
 async def get_observation_async(geohash: str):
