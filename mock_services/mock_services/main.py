@@ -1,14 +1,15 @@
-import random
 from datetime import UTC, datetime, timedelta
 from typing import Annotated
 
 from fastapi import FastAPI, HTTPException, Query, Security, status
 from fastapi.security import APIKeyHeader
-from polyfactory.factories.pydantic_factory import ModelFactory
 from utils.met_office_models import (
     LatLon,
+    LatLonFactory,
     MetOfficeLandObservationGeohash,
+    MetOfficeLandObservationGeohashFactory,
     MetOfficeLandObservationNearest,
+    MetOfficeLandObservationNearestFactory,
 )
 
 # Define the expected header name (adjust to match what your real API expects)
@@ -43,32 +44,6 @@ app = FastAPI(
     version="0.1.0",
     dependencies=[Security(validate_met_office_auth)],
 )
-
-
-# --- 2. POLYFACTORY DATA FACTORY ---
-class LatLonFactory(ModelFactory[LatLon]):
-    __model__ = LatLon
-
-    # Force coordinates to always fall within a bounding box around the UK
-    @classmethod
-    def lat(cls) -> float:
-        return round(random.uniform(50.0, 58.0), 4)
-
-    @classmethod
-    def lon(cls) -> float:
-        return round(random.uniform(-7.0, 1.5), 4)
-
-
-class MetOfficeLandObservationGeohashFactory(
-    ModelFactory[MetOfficeLandObservationGeohash]
-):
-    __model__ = MetOfficeLandObservationGeohash
-
-
-class MetOfficeLandObservationNearestFactory(
-    ModelFactory[MetOfficeLandObservationNearest]
-):
-    __model__ = MetOfficeLandObservationNearest
 
 
 # --- 3. STATEFUL RUNTIME DATABASE ---

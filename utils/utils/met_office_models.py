@@ -1,6 +1,8 @@
 import math
+import random
 from datetime import datetime
 
+from polyfactory.factories.pydantic_factory import ModelFactory
 from pydantic import BaseModel, Field
 
 
@@ -42,6 +44,19 @@ class LatLon(BaseModel, frozen=True):
         return round(c * earth_radius_km, 2)
 
 
+class LatLonFactory(ModelFactory[LatLon]):
+    __model__ = LatLon
+
+    # Force coordinates to always fall within a bounding box around the UK
+    @classmethod
+    def lat(cls) -> float:
+        return round(random.uniform(50.0, 58.0), 4)
+
+    @classmethod
+    def lon(cls) -> float:
+        return round(random.uniform(-7.0, 1.5), 4)
+
+
 class MetOfficeLandObservationGeohash(BaseModel):
     """/observation-land/1/{geohash}"""
 
@@ -67,6 +82,12 @@ class MetOfficeLandObservationGeohash(BaseModel):
     """Wind speed in m/s."""
 
 
+class MetOfficeLandObservationGeohashFactory(
+    ModelFactory[MetOfficeLandObservationGeohash]
+):
+    __model__ = MetOfficeLandObservationGeohash
+
+
 class MetOfficeLandObservationNearest(BaseModel):
     """/observation-land/1/nearest"""
 
@@ -80,6 +101,12 @@ class MetOfficeLandObservationNearest(BaseModel):
     """The country of the location"""
     olson_time_zone: str | None
     """Olson time zone string of location"""
+
+
+class MetOfficeLandObservationNearestFactory(
+    ModelFactory[MetOfficeLandObservationNearest]
+):
+    __model__ = MetOfficeLandObservationNearest
 
 
 class MetOfficeLandObservationRecord(LatLon, frozen=True):
