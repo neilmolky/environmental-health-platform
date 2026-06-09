@@ -1,5 +1,5 @@
 [project]
-name = "mock_services"
+name = "mock-services"
 version = "0.1.0"
 description = "Mock services emulating the api endopoints we connect to"
 readme = "README.md"
@@ -9,13 +9,16 @@ dependencies = [
     "httpx>=0.28.1",
     "uvicorn>=0.48.0",
     "utils",
-    "pydantic>=2.13.4",
+    "pydantic[standard]>=2.13.4",
     "polyfactory>=3.3.0",
 ]
 
+[project.scripts]
+dev = "mock_services.main:run_dev"
+run = "mock_services.main:run_prod"
+
 [tool.uv.sources]
 utils = { workspace = true }
-backend = { workspace = true }
 
 [build-system]
 requires = ["hatchling"]

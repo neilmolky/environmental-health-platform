@@ -5,15 +5,19 @@ volumes:
 
 services:
   backend:
+    # run without root permissions as this also serves as the dev-container
+    user: vscode
     build:
       context: .
       dockerfile: backend/Dockerfile
     volumes:
       - .:/workspace
-      - uv-cache:/root/.cache/uv
+      - uv-cache:/home/vscode/.cache/uv
     working_dir: /workspace
     # SENSIBLE DEFAULTS LAYER
     environment:
+      - UV_CACHE_DIR=/home/vscode/.cache/uv
+      - UV_LINK_MODE=copy
       - PYTHONUNBUFFERED=1
       - STORAGE_BACKEND=${STORAGE_BACKEND:-aws}
       - AWS_ENDPOINT_URL=${AWS_ENDPOINT_URL:-http://minio:9000}
@@ -38,6 +42,19 @@ services:
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-minioadmin}
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-minioadmin}
       - AZURE_STORAGE_CONNECTION_STRING=${AZURE_STORAGE_CONNECTION_STRING:-DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;}
+
+
+  mock-services:
+    build:
+      context: .
+      dockerfile: mock-services/Dockerfile
+    ports:
+      - "8001:8001"
+    volumes:
+      - .:/workspace
+      - uv-cache:/root/.cache/uv
+    working_dir: /workspace
+    command: uv run uvicorn mock_services.main:app --host 0.0.0.0 --port 8001 --reload
 
   frontend:
     build:

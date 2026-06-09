@@ -18,7 +18,7 @@ COPY backend/pyproject.toml ./backend/
 COPY utils/pyproject.toml ./utils/
 COPY api/pyproject.toml ./api/
 COPY frontend/pyproject.toml ./frontend/
-COPY mock_services/pyproject.toml ./mock_services/
+COPY mock-services/pyproject.toml ./mock-services/
 
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-install-workspace --all-packages
@@ -33,7 +33,7 @@ COPY backend/ /app/backend/
 COPY utils/ /app/utils/
 COPY api/ /app/api/
 COPY frontend/ /app/frontend/
-COPY mock_services/ /app/mock_services/
+COPY mock-services/ /app/mock-services/
 
 # Final local compilation: links your actual workspace packages into the environment.
 RUN --mount=type=cache,target=/root/.cache/uv \

@@ -16,7 +16,7 @@ members = [
     "api",
     "frontend",
     "utils",
-    "mock_services",
+    "mock-services",
 ]
 
 [tool.ruff]
@@ -62,7 +62,7 @@ addopts = """
     --cov=api/api 
     --cov=frontend/frontend 
     --cov=utils/utils 
-    --cov=mock_services/mock_services  
+    --cov=mock-services/mock_services  
     --cov-report=term-missing
 """
 markers = [
@@ -74,7 +74,7 @@ testpaths = [
     "api/tests",
     "frontend/tests",
     "utils/tests",
-    "mock_services/tests"
+    "mock-services/tests"
 ]
 
 [tool.coverage.report]

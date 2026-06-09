@@ -1,15 +1,30 @@
 {
   "name": "Environmental Health Platform (Workspace)",
   "dockerComposeFile": [
-    "../docker-compose.yml"
+    "../docker-compose.yml",
+    "./docker-compose.dev.yml"
   ],
   "service": "backend",
   "workspaceFolder": "/workspace",
+  "containerEnv": {
+    "UV_LINK_MODE": "copy"
+  },
   "runServices": [
     "backend",
     "minio",
-    "azurite"
+    "azurite",
+    "mock-services"
   ],
+  "forwardPorts": [
+    "mock-services:8001"
+  ],
+  
+  "portsAttributes": {
+    "mock-service:8001": {
+      "label": "Mock Services API",
+      "onAutoForward": "notify"
+    }
+  },
   "customizations": {
     "vscode": {
       "extensions": [
@@ -25,14 +40,10 @@
           "${workspaceFolder}/api",
           "${workspaceFolder}/frontend",
           "${workspaceFolder}/utils",
-          "${workspaceFolder}/mock_services"
+          "${workspaceFolder}/mock-services"
         ],
         "python.testing.pytestEnabled": true,
-        "python.testing.pytestArgs": [
-          "backend",
-          "api",
-          "frontend"
-        ],
+        "python.testing.pytestArgs": [],
         
         "python.languageServer": "None",
 
@@ -46,7 +57,7 @@
         }
       }
     },
-    "remoteUser": "root",
+    "remoteUser": "vscode",
     "postCreateCommand": "uv sync --frozen --all-packages"
   }
 }
