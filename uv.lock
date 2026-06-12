@@ -16,7 +16,7 @@ members = [
     "backend",
     "environmental-health-platform",
     "frontend",
-    "mock-services",
+    "mock",
     "utils",
 ]
 
@@ -1724,9 +1724,9 @@ wheels = [
 ]
 
 [[package]]
-name = "mock-services"
+name = "mock"
 version = "0.1.0"
-source = { editable = "mock-services" }
+source = { editable = "mock" }
 dependencies = [
     { name = "fastapi" },
     { name = "httpx" },
@@ -1741,7 +1741,7 @@ requires-dist = [
     { name = "fastapi", specifier = ">=0.136.3" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "polyfactory", specifier = ">=3.3.0" },
-    { name = "pydantic", extras = ["standard"], specifier = ">=2.13.4" },
+    { name = "pydantic", specifier = ">=2.13.4" },
     { name = "utils", editable = "utils" },
     { name = "uvicorn", specifier = ">=0.48.0" },
 ]

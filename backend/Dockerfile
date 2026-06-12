@@ -1,52 +1,41 @@
 # ============================================================================
-# Base Runtime Setup
+# Runtime setup including DevContainer
 # ============================================================================
-FROM ghcr.io/astral-sh/uv:python3.13-trixie
-WORKDIR /app
+FROM ghcr.io/astral-sh/uv:0.11.21-python3.13-trixie
+WORKDIR /workspace
 
-# Install native core operating system utilities required for development/monitoring
-RUN apt-get update && apt-get upgrade -y \
-    && apt-get install -y --no-install-recommends \
+# 1. Install native core operating system utilities required for development/monitoring
+# backend serves as an entrypoint for the dev-container, testing, and geospatial tasks
+RUN apt-get update && apt-get install -y --no-install-recommends \
     git curl ca-certificates \
+    # Native C-libraries required to compile/run geospatial tools like GeoPandas
+    gdal-bin libgdal-dev libgeos-dev libproj-dev build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# ============================================================================
-# PHASE 2: Metadata Caching (Speeds up DevContainer Rebuilds)
-# ============================================================================
-COPY pyproject.toml uv.lock ./
-COPY backend/pyproject.toml ./backend/
-COPY utils/pyproject.toml ./utils/
-COPY api/pyproject.toml ./api/
-COPY frontend/pyproject.toml ./frontend/
-COPY mock-services/pyproject.toml ./mock-services/
-
-RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --no-install-workspace --all-packages
-
-# ============================================================================
-# PHASE 3: Source Injection & Workspace Linkage
-# ============================================================================
-# Inject the live source code into the isolated container space.
-# Since this layer comes AFTER the heavy download step, code changes here 
-# will bypass the download phase and compile instantly!
-COPY backend/ /app/backend/
-COPY utils/ /app/utils/
-COPY api/ /app/api/
-COPY frontend/ /app/frontend/
-COPY mock-services/ /app/mock-services/
-
-# Final local compilation: links your actual workspace packages into the environment.
-RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --all-packages
-
-# ============================================================================
-# PHASE 4: Runtime Environment Configuration
-# ============================================================================
-# Expose the virtual environment's binaries straight to the system path
-ENV PATH="/app/.venv/bin:$PATH"
-
-# Force Python stdout/stderr to be unbuffered to ensure real-time log tracking
+# 2. add the location of the venv to the path
+ENV PATH="/workspace/.venv/bin:$PATH"
 ENV PYTHONUNBUFFERED=1
 
-# Spin up the asynchronous Prefect execution worker agent targeting the regional pool
-CMD ["prefect", "worker", "start", "--pool", "uk-health-pool"]
+# 3. Copy the global workspace configurations
+COPY pyproject.toml uv.lock ./
+COPY backend/pyproject.toml /workspace/backend/
+COPY utils/pyproject.toml /workspace/utils/
+COPY api/pyproject.toml /workspace/api/
+COPY frontend/pyproject.toml /workspace/frontend/
+COPY mock/pyproject.toml /workspace/mock/
+
+# 4. Sync only dependencies outside the workspace
+RUN uv sync --frozen --no-install-workspace --all-packages
+
+# 5. Copy workspace packages to enable code editing
+COPY backend/ /workspace/backend/
+COPY utils/ /workspace/utils/
+COPY api/ /workspace/api/
+COPY frontend/ /workspace/frontend/
+COPY mock/ /workspace/mock/
+
+# 6. sync with editable workspace dependencies.
+RUN uv sync --frozen --all-packages
+
+# Generic fallback command. Overridden dynamically by orchestration (docker-compose)
+CMD ["python3"]

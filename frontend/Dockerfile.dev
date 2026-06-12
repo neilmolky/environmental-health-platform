@@ -1,0 +1,43 @@
+FROM ghcr.io/astral-sh/uv:0.11.21-python3.13-trixie
+WORKDIR /workspace
+
+# 1. Update system baseline and install native geospatial C-libraries as root
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git curl ca-certificates \
+    gdal-bin libgdal-dev libgeos-dev libproj-dev build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# 2. add the location of the venv to the path
+ENV PATH="/workspace/.venv/bin:$PATH"
+ENV PYTHONUNBUFFERED=1
+
+# 3. Add a dev user matching your host machine mappings (UID/GID 1000)
+RUN groupadd --gid 1000 dev \
+    && useradd --uid 1000 --gid 1000 -m dev \
+    && chown -R dev:dev /workspace
+
+# 4. Safely drop privileges to the dev user for all subsequent build steps
+USER dev
+
+# 5. Copy the global workspace configurations (COPY always runs as ROOT)
+COPY --chown=dev:dev pyproject.toml uv.lock ./
+COPY --chown=dev:dev frontend/pyproject.toml /workspace/frontend/
+COPY --chown=dev:dev utils/pyproject.toml /workspace/utils/
+
+# 6. Sync only required dependencies using a user-owned host build cache grant dev full access to the cache mount.
+RUN --mount=type=cache,target=/home/dev/.cache/uv,uid=1000 \
+    uv sync --no-install-workspace --all-packages
+
+# 7. Copy source code into the active image workspace (COPY always runs as ROOT)
+COPY --chown=dev:dev frontend/ /workspace/frontend/
+COPY --chown=dev:dev utils/ /workspace/utils/
+
+# 8. sync all workspace dependencies into the active image workspace
+RUN --mount=type=cache,target=/home/dev/.cache/uv,uid=1000 \
+    uv sync --all-packages
+
+# 8. Expose the service port
+EXPOSE 2718
+
+# Generic fallback command. Overridden dynamically by orchestration
+CMD ["python3"]

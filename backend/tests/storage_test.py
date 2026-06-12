@@ -2,7 +2,8 @@ import os
 import pathlib
 
 import pytest
-from backend.storage import get_storage_client
+
+from backend.storage.client import get_storage_client
 
 
 def test_local_filesystem_smoke_pass(

@@ -67,7 +67,7 @@ now = datetime.now(UTC)
 
 for record in MOCK_GEOHASH_DB.values():
     geohash_key = record[0].geohash
-    station_history = []
+    station_history: list[MetOfficeLandObservation] = []
 
     for hour_offset in range(48):
         # Calculate the exact timestamp for this hour slot (moving backwards)

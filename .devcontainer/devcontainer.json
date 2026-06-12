@@ -1,29 +1,22 @@
 {
   "name": "Environmental Health Platform (Workspace)",
   "dockerComposeFile": [
-    "../docker-compose.yml",
-    "./docker-compose.dev.yml"
+    "../docker-compose.yml"
   ],
   "service": "backend",
   "workspaceFolder": "/workspace",
-  "containerEnv": {
-    "UV_LINK_MODE": "copy"
-  },
-  "runServices": [
-    "backend",
-    "minio",
-    "azurite",
-    "mock-services"
-  ],
+  "remoteUser": "dev",
   "forwardPorts": [
-    "mock-services:8001"
+    "api:8000",
+    "mock:8001",
+    "prefect-server:4200",
+    "frontend:2718"
   ],
-  
   "portsAttributes": {
-    "mock-service:8001": {
-      "label": "Mock Services API",
-      "onAutoForward": "notify"
-    }
+    "8000": { "label": "FastAPI Core Analytics Engine", "onAutoForward": "notify" },
+    "8001": { "label": "Mock UK Met Office API", "onAutoForward": "notify" },
+    "4200": { "label": "Prefect Dashboard UI", "onAutoForward": "notify" },
+    "2718": { "label": "Marimo Interactive Dashboard", "onAutoForward": "notify" }
   },
   "customizations": {
     "vscode": {
@@ -34,13 +27,13 @@
         "astral-sh.ty"
       ],
       "settings": {
-        "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
+        "python.defaultInterpreterPath": "${workspaceFolder}/.devcontainer/.venv/bin/python",
         "python.analysis.extraPaths": [
           "${workspaceFolder}/backend",
           "${workspaceFolder}/api",
           "${workspaceFolder}/frontend",
           "${workspaceFolder}/utils",
-          "${workspaceFolder}/mock-services"
+          "${workspaceFolder}/mock"
         ],
         "python.testing.pytestEnabled": true,
         "python.testing.pytestArgs": [],
@@ -56,8 +49,6 @@
           }
         }
       }
-    },
-    "remoteUser": "vscode",
-    "postCreateCommand": "uv sync --frozen --all-packages"
+    }
   }
 }

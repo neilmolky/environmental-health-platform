@@ -1,5 +1,13 @@
-version: "3.8"
-
 services:
-  mock-services:
-    ports: !override [] 
+  # override the ports exposed in docker compose and handle port forwarding with devcontainer.json
+  prefect-server:
+    ports: []
+  
+  api:
+    ports: [] 
+
+  mock:
+    ports: []
+
+  frontend:
+    ports: []

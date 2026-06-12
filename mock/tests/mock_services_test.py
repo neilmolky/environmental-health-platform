@@ -4,19 +4,20 @@ import httpx
 import pytest
 from fastapi import status
 from fastapi.testclient import TestClient
-from mock_services.main import (
+
+from mock.met_office import (
     MOCK_GEOHASH_DB,
     MOCK_OBSERVATION_DB,
     MOCK_STATION_COORDINATES,
     VALID_API_KEY,
-    app,
+    met_office_mock_app,
 )
 
 
 # Use standard standard sync TestClient for FastAPI endpoints
 @pytest.fixture
 def client() -> TestClient:
-    return TestClient(app)
+    return TestClient(met_office_mock_app)
 
 
 class TestMetOfficeMockApi:

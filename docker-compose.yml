@@ -1,79 +1,130 @@
 volumes:
-  uv-cache:
   aws-data:
+    name: "environmental-health-platform-azure-data"
   azure-data:
+    name: "environmental-health-platform-azure-data"
+
+networks:
+  # Explicitly name the networks to prevent docher compose using underscores
+  # underscores are not valid under under RFC 952 and RFC 1123
+  group-mesh:
+    name: "environmental-health-platform-group-mesh"
+    driver: bridge
+  blob-access:
+    name: "environmental-health-platform-blob-access"
+    driver: bridge
+
+# Storage Env Variables required only by backend and api services
+x-storage-env: &storage-env
+  STORAGE_BACKEND: ${STORAGE_BACKEND:-aws}
+  AWS_ENDPOINT_URL: ${AWS_ENDPOINT_URL:-http://minio:9000}
+  AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-minioadmin}
+  AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-minioadmin}
+  AZURE_STORAGE_CONNECTION_STRING: ${AZURE_STORAGE_CONNECTION_STRING:-DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;}
+
+x-uv-env: &uv-env
+  UV_PROJECT_ENVIRONMENT: /workspace/.devcontainer/.venv
+  VIRTUAL_ENV: /workspace/.devcontainer/.venv
+  PYTHONPATH: /workspace/.devcontainer/.venv/bin/python
+  UV_CACHE_DIR: /home/dev/.cache/uv
+  UV_LINK_MODE: copy
+  PYTHONUNBUFFERED: 1
+
 
 services:
+  # --- BACKEND CORE / DEV CONTAINER HOST ---
   backend:
-    # run without root permissions as this also serves as the dev-container
-    user: vscode
+    # using a non-root user prevents issues with file ownership on the local machine
+    # without this, it's possible that using a dev container will make the venv and other code files unuseable unless run as root
+    user: dev
     build:
       context: .
-      dockerfile: backend/Dockerfile
+      dockerfile: backend/Dockerfile.dev
     volumes:
       - .:/workspace
-      - uv-cache:/home/vscode/.cache/uv
     working_dir: /workspace
-    # SENSIBLE DEFAULTS LAYER
+    networks:
+      - group-mesh
+      - blob-access
     environment:
-      - UV_CACHE_DIR=/home/vscode/.cache/uv
-      - UV_LINK_MODE=copy
-      - PYTHONUNBUFFERED=1
-      - STORAGE_BACKEND=${STORAGE_BACKEND:-aws}
-      - AWS_ENDPOINT_URL=${AWS_ENDPOINT_URL:-http://minio:9000}
-      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-minioadmin}
-      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-minioadmin}
-      - AZURE_STORAGE_CONNECTION_STRING=${AZURE_STORAGE_CONNECTION_STRING:-DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;}
+      <<: [*storage-env, *uv-env]
+      UV_LINK_MODE: copy
+      PREFECT_API_URL: http://prefect-server:4200/api
+      MET_OFFICE_MOCK_URL: http://mock:8001
     command: sleep infinity
 
+  # --- ORCHESTRATION LAYER ---
+  prefect-server:
+    image: prefecthq/prefect:3-latest
+    ports:
+      - "4200:4200"
+    networks:
+      - group-mesh
+    environment:
+      - PREFECT_SERVER_API_HOST=0.0.0.0
+    command: prefect server start
+
+  # --- FASTAPI SERVER ---
   api:
     build:
       context: .
-      dockerfile: api/Dockerfile
+      dockerfile: api/Dockerfile.dev
+    user: dev
     ports:
       - "8000:8000"
+    networks:
+      - group-mesh
+      - blob-access
     volumes:
       - .:/workspace
-      - uv-cache:/root/.cache/uv
     working_dir: /workspace
     environment:
-      - STORAGE_BACKEND=${STORAGE_BACKEND:-aws}
-      - AWS_ENDPOINT_URL=${AWS_ENDPOINT_URL:-http://minio:9000}
-      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-minioadmin}
-      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-minioadmin}
-      - AZURE_STORAGE_CONNECTION_STRING=${AZURE_STORAGE_CONNECTION_STRING:-DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;}
+      <<: [*storage-env, *uv-env]
+    command: uv run uvicorn api:app --host 0.0.0.0 --port 8000 --reload
 
-
-  mock-services:
+  # --- API SIMULATOR ---
+  mock:
     build:
       context: .
-      dockerfile: mock-services/Dockerfile
+      dockerfile: mock/Dockerfile.dev
+    user: dev
     ports:
       - "8001:8001"
+    networks:
+      - group-mesh
     volumes:
       - .:/workspace
-      - uv-cache:/root/.cache/uv
+    environment:
+      <<: *uv-env
     working_dir: /workspace
-    command: uv run uvicorn mock_services.main:app --host 0.0.0.0 --port 8001 --reload
+    command: uv run uvicorn mock.met_office:app --host 0.0.0.0 --port 8001 --reload
 
+  # --- MARIMO USER INTERFACE ---
   frontend:
     build:
       context: .
-      dockerfile: frontend/Dockerfile
+      dockerfile: frontend/Dockerfile.dev
+    user: dev
     ports:
       - "2718:2718"
+    networks:
+      - group-mesh
     volumes:
       - .:/workspace
-      - uv-cache:/root/.cache/uv
     working_dir: /workspace
+    environment:
+      <<: *uv-env
+    command: uv run marimo edit frontend/src/frontend/health_analysis.py --host 0.0.0.0 --port 2718 --no-token
 
-  # --- STORAGE EMULATORS WITH PROFILES ---
+  # --- STORAGE EMULATORS ---
   minio:
     image: minio/minio:latest
     profiles: ["aws"]
     ports:
       - "9000:9000"
       - "9001:9001"
+    networks:
+      - blob-access
     volumes:
       - aws-data:/data
     command: server /data --console-address ":9001"
@@ -83,10 +134,8 @@ services:
     profiles: ["azure"]
     ports:
       - "10000:10000"
-      - "10001:10001"
-      - "10002:10002"
+    networks:
+      - blob-access
     volumes:
       - azure-data:/data
-    # FIX: bypass version tracking guardrails instead of pinning specific versions
-    # this is minimal risk for simple read's
     command: azurite-blob --blobHost 0.0.0.0 --blobPort 10000 --location /data --skipApiVersionCheck
