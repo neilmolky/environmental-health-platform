@@ -10,7 +10,6 @@ jobs:
   build-and-test:
     name: Build Packages & Run Tests
     runs-on: ubuntu-latest
-    FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true
 
     steps:
       - name: Check out repository code
