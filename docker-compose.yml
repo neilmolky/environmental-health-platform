@@ -59,8 +59,6 @@ services:
       - "4200:4200"
     networks:
       - group-mesh
-    environment:
-      - PREFECT_SERVER_API_HOST=0.0.0.0
     command: prefect server start
 
   # --- FASTAPI SERVER ---
