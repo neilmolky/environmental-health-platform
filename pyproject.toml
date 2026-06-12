@@ -60,11 +60,11 @@ suppress-none-returning = false
 
 [tool.pytest.ini_options]
 addopts = """
-    --cov=backend/backend 
-    --cov=api/api 
-    --cov=frontend/frontend 
-    --cov=utils/utils 
-    --cov=mock/mock
+    --cov=backend/src/backend 
+    --cov=api/src/api 
+    --cov=frontend/src/frontend 
+    --cov=utils/src/utils 
+    --cov=mock/src/mock
     --cov-report=term-missing
 """
 markers = [

@@ -34,7 +34,7 @@ class _MetOfficeClientConfig(BaseSettings):
     secret: SecretStr = Field(..., validation_alias="MET_OFFICE_CLIENT_SECRET")
     base_url: HttpUrl = Field(
         MET_OFFICE_LIVE_URL,
-        validation_alias="MET_OFFICE_MOCK_URL",
+        validation_alias="MET_OFFICE_URL",
         validate_default=True,
     )
 
@@ -112,7 +112,7 @@ def met_office_client_factory(use_mock: bool | None = None) -> _MetOfficeClientC
         return _MetOfficeClientConfig.model_validate(
             {"MET_OFFICE_CLIENT_SECRET": "apikey"}
         )
-    return _MetOfficeClientConfig()
+    return _MetOfficeClientConfig.model_validate({"base_url": MET_OFFICE_LIVE_URL})
 
 
 async def get_observation_async(
