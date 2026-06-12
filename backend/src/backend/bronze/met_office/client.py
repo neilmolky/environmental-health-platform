@@ -107,12 +107,14 @@ def met_office_client_factory(use_mock: bool | None = None) -> _MetOfficeClientC
         otherwise it is populated from environment/.env.
     """
     if use_mock is None:
-        use_mock = os.getenv("MET_OFFICE_MOCK_URL") is not None
+        use_mock = os.getenv("MET_OFFICE_URL") is not None
     if use_mock:
         return _MetOfficeClientConfig.model_validate(
             {"MET_OFFICE_CLIENT_SECRET": "apikey"}
         )
-    return _MetOfficeClientConfig.model_validate({"base_url": MET_OFFICE_LIVE_URL})
+    return _MetOfficeClientConfig.model_validate(
+        {"MET_OFFICE_URL": MET_OFFICE_LIVE_URL}
+    )
 
 
 async def get_observation_async(

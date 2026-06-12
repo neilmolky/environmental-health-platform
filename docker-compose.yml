@@ -1,6 +1,6 @@
 volumes:
   aws-data:
-    name: "environmental-health-platform-azure-data"
+    name: "environmental-health-platform-aws-data"
   azure-data:
     name: "environmental-health-platform-azure-data"
 
@@ -25,7 +25,6 @@ x-storage-env: &storage-env
 x-uv-env: &uv-env
   UV_PROJECT_ENVIRONMENT: /workspace/.devcontainer/.venv
   VIRTUAL_ENV: /workspace/.devcontainer/.venv
-  PYTHONPATH: /workspace/.devcontainer/.venv/bin/python
   UV_CACHE_DIR: /home/dev/.cache/uv
   UV_LINK_MODE: copy
   PYTHONUNBUFFERED: 1

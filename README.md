@@ -80,10 +80,10 @@ graph TD;
     marimo-notebook ==> |REST Data Queries| get-data
 
     %% --- EXPOSED USER PORTS ---
-    user((🧑‍💻 Data Analyst / Engineer)) <...- port:8000 -.-> api-service
-    user <...- port:2718 -.-> marimo-notebook
-    user <...- port:4200 -.-> prefect-server
-    user <...- port:8001 -.-> mock
+    user((🧑‍💻 Data Analyst / Engineer)) <-- port:8000 --> api-service
+    user <-- port:2718 --> marimo-notebook
+    user <-- port:4200 --> prefect-server
+    user <-- port:8001 --> mock
 
     %% --- VISUAL REFINEMENTS ---
     style Storage-Backend fill:#f9f,stroke:#333,stroke-width:2px

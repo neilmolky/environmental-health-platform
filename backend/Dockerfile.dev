@@ -33,7 +33,7 @@ COPY --chown=dev:dev frontend/pyproject.toml /workspace/frontend/
 COPY --chown=dev:dev mock/pyproject.toml /workspace/mock/
 
 # 6. Sync only required dependencies using a user-owned host build cache grant dev full access to the cache mount.
-RUN --mount=type=cache,target=/root/.cache/uv,uid=1000 \
+RUN --mount=type=cache,target=/home/dev/.cache/uv,uid=1000\
     uv sync --no-install-workspace --all-packages
 
 # 7. Copy workspace packages to enable code editing
@@ -44,7 +44,7 @@ COPY --chown=dev:dev frontend/ /workspace/frontend/
 COPY --chown=dev:dev mock/ /workspace/mock/
 
 # 8. sync with editable workspace dependencies.
-RUN --mount=type=cache,target=/root/.cache/uv,uid=1000 \
+RUN --mount=type=cache,target=/home/dev/.cache/uv,uid=1000 \
     uv sync --all-packages
 
 # Generic fallback command. Overridden dynamically by orchestration (docker-compose)

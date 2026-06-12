@@ -1,11 +1,8 @@
 [project]
 name = "api"
 version = "0.1.0"
-description = "Add your description here"
+description = "API service for the environmental health platform."
 readme = "README.md"
-authors = [
-    { name = "neilmolky", email = "neilmolky@zoho.com" }
-]
 requires-python = ">=3.13"
 dependencies = [
     "adlfs>=2026.5.0",

@@ -27,7 +27,8 @@ COPY --chown=dev:dev mock/ /workspace/mock/
 COPY --chown=dev:dev utils/ /workspace/utils/
 
 # 7. sync all workspace dependencies into the active image workspace
-RUN uv sync --all-packages
+RUN --mount=type=cache,target=/home/dev/.cache/uv,uid=1000 \
+    uv sync --all-packages
 
 # 8. Expose the service port
 EXPOSE 8001
