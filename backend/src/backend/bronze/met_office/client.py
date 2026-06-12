@@ -93,18 +93,15 @@ class _MetOfficeClientConfig(BaseSettings):
 
 def met_office_client_factory(use_mock: bool | None = None) -> _MetOfficeClientConfig:
     """
-    Create a configured Met Office client config for mock or live use.
-
+    Produce a _MetOfficeClientConfig configured for mock or live Met Office API access.
+    
+    If `use_mock` is None, selection is based on whether the environment variable `MET_OFFICE_URL` is present. When `use_mock` is True, the returned config is primed for testing with a fixed client secret. When False, the returned config is set up for the live Met Office service using the module's live base URL.
+    
     Parameters:
-        use_mock (bool | None): When True, return a config primed for mock usage.
-        When False, return a config populated from environment/.env.
-        When None (default), decide based on presence of the
-        `MET_OFFICE_MOCK_URL` environment variable.
-
+        use_mock: When True, return a config populated with a fixed mock secret. When False, return a config populated for live use. When None, select mode based on presence of `MET_OFFICE_URL` in the environment.
+    
     Returns:
-        _MetOfficeClientConfig: A configured client object. If `use_mock` is True,
-        returned config is populated with a fixed secret value for mocking;
-        otherwise it is populated from environment/.env.
+        _MetOfficeClientConfig: A configured client settings object ready for creating HTTP clients.
     """
     if use_mock is None:
         use_mock = os.getenv("MET_OFFICE_URL") is not None
