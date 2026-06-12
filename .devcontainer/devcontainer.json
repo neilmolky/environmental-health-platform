@@ -6,6 +6,7 @@
   "service": "backend",
   "workspaceFolder": "/workspace",
   "remoteUser": "dev",
+  "postCreateCommand": "uv sync --all-packages",
   "forwardPorts": [
     "api:8000",
     "mock:8001",
@@ -27,6 +28,7 @@
         "astral-sh.ty"
       ],
       "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash",  
         "python.defaultInterpreterPath": "${workspaceFolder}/.devcontainer/.venv/bin/python",
         "python.analysis.extraPaths": [
           "${workspaceFolder}/backend",

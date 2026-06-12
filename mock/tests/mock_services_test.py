@@ -10,14 +10,14 @@ from mock.met_office import (
     MOCK_OBSERVATION_DB,
     MOCK_STATION_COORDINATES,
     VALID_API_KEY,
-    met_office_mock_app,
+    app,
 )
 
 
 # Use standard standard sync TestClient for FastAPI endpoints
 @pytest.fixture
 def client() -> TestClient:
-    return TestClient(met_office_mock_app)
+    return TestClient(app)
 
 
 class TestMetOfficeMockApi:
