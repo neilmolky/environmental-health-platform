@@ -91,6 +91,8 @@ class _MetOfficeClientConfig(BaseSettings):
             yield session
 
 
+# TODO: consider redesign of context switching.
+# Pydantic settings discourages using model_construct in this way
 def met_office_client_factory(use_mock: bool | None = None) -> _MetOfficeClientConfig:
     """
     Produce a _MetOfficeClientConfig configured for mock or live Met Office API access.

@@ -7,7 +7,7 @@
   "service": "backend",
   "workspaceFolder": "/workspace",
   "remoteUser": "dev",
-  "postCreateCommand": "uv sync --all-packages",
+  "postCreateCommand": "uv sync --frozen --all-packages",
   "forwardPorts": [
     "api:8000",
     "mock:8001",
