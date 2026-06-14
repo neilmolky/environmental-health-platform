@@ -21,7 +21,6 @@ members = [
     "frontend",
     "utils",
     "mock",
-    "apiv2",
 ]
 
 [tool.ruff]

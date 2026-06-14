@@ -48,13 +48,16 @@ services:
     environment:
       <<: [*storage-env, *uv-env]
       UV_LINK_MODE: copy
-      PREFECT_API_URL: http://prefect-server:4200/api
+      PREFECT_API_URL: ${PREFECT_API_URL:-http://prefect-server:4200/api}
       MET_OFFICE_MOCK_URL: http://mock:8001
     command: sleep infinity
 
   # --- ORCHESTRATION LAYER ---
   prefect-server:
     image: prefecthq/prefect:3-latest
+    environment:
+      PREFECT_SERVER_API_HOST: 0.0.0.0
+      PREFECT_API_URL: ${PREFECT_API_URL:-http://prefect-server:4200/api}
     ports:
       - "4200:4200"
     networks:

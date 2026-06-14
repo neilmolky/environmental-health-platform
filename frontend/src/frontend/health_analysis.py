@@ -6,9 +6,6 @@ app = marimo.App(width="medium")
 
 @app.cell
 def _():
-    """
-    Prints "hello world!" to standard output.
-    """
     print("hello world!")
     return
 
