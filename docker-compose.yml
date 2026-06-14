@@ -31,6 +31,11 @@ x-uv-env: &uv-env
   UV_LINK_MODE: copy
   PYTHONUNBUFFERED: 1
 
+x-client-env: &client_env
+  MET_OFFICE__CLIENT_TYPE: ${MET_OFFICE__CLIENT_TYPE:-mock}
+  MET_OFFICE__MOCK_URL: ${MET_OFFICE__MOCK_URL:-http://mock:8001}
+  MET_OFFICE__LIVE_SECRET: ${MET_OFFICE__LIVE_SECRET}
+
 
 services:
   # --- BACKEND CORE / DEV CONTAINER HOST ---
@@ -48,9 +53,8 @@ services:
       - group-mesh
       - blob-access
     environment:
-      <<: [*storage-env, *uv-env]
+      <<: [*storage-env, *uv-env, *client_env]
       PREFECT_API_URL: ${PREFECT_API_URL:-http://prefect-server:4200/api}
-      MET_OFFICE_URL: ${MET_OFFICE_URL:-http://mock:8001}
     command: sleep infinity
 
   # --- ORCHESTRATION LAYER ---

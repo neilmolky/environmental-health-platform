@@ -88,7 +88,7 @@ class LatLonFactory(ModelFactory[LatLon]):
         return round(random.uniform(-7.0, 1.5), 4)
 
 
-class MetOfficeLandObservation(BaseModel):
+class MetOfficeLandObservationV1(BaseModel):
     """/observation-land/1/{geohash}"""
 
     datetime: datetime
@@ -113,8 +113,8 @@ class MetOfficeLandObservation(BaseModel):
     """Wind speed in m/s."""
 
 
-class MetOfficeLandObservationFactory(ModelFactory[MetOfficeLandObservation]):
-    __model__ = MetOfficeLandObservation
+class MetOfficeLandObservationFactory(ModelFactory[MetOfficeLandObservationV1]):
+    __model__ = MetOfficeLandObservationV1
 
 
 class MetOfficeLandObservationStation(BaseModel):

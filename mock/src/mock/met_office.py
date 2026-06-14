@@ -6,10 +6,10 @@ from fastapi.security import APIKeyHeader
 from utils.met_office_models import (
     LatLon,
     LatLonFactory,
-    MetOfficeLandObservation,
     MetOfficeLandObservationFactory,
     MetOfficeLandObservationStation,
     MetOfficeLandObservationStationFactory,
+    MetOfficeLandObservationV1,
 )
 
 # Define the expected header name (adjust to match what your real API expects)
@@ -61,13 +61,13 @@ MOCK_GEOHASH_DB: dict[LatLon, list[MetOfficeLandObservationStation]] = {
     coord: MetOfficeLandObservationStationFactory.batch(size=1)
     for coord in MOCK_STATION_COORDINATES
 }
-MOCK_OBSERVATION_DB: dict[str, list[MetOfficeLandObservation]] = {}
+MOCK_OBSERVATION_DB: dict[str, list[MetOfficeLandObservationV1]] = {}
 
 now = datetime.now(UTC)
 
 for record in MOCK_GEOHASH_DB.values():
     geohash_key = record[0].geohash
-    station_history: list[MetOfficeLandObservation] = []
+    station_history: list[MetOfficeLandObservationV1] = []
 
     for hour_offset in range(48):
         # Calculate the exact timestamp for this hour slot (moving backwards)
@@ -112,10 +112,10 @@ async def get_nearest(
 
 @app.get(
     "/observation-land/1/{geohash}",
-    response_model=list[MetOfficeLandObservation],
+    response_model=list[MetOfficeLandObservationV1],
     status_code=status.HTTP_200_OK,
 )
-async def get_observation_async(geohash: str) -> list[MetOfficeLandObservation]:
+async def get_observation_async(geohash: str) -> list[MetOfficeLandObservationV1]:
     """
     Retrieve the list of mock land observations for the specified geohash.
 

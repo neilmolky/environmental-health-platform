@@ -1,41 +1,54 @@
-import os
 from collections.abc import AsyncGenerator, Generator
 from contextlib import asynccontextmanager, contextmanager
+from typing import Literal
 
 import httpx
-from pydantic import Field, HttpUrl, SecretStr
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import BaseModel, Field, HttpUrl, SecretStr
 from utils.met_office_models import (
     LatLon,
-    MetOfficeLandObservation,
     MetOfficeLandObservationStation,
+    MetOfficeLandObservationV1,
 )
 from utils.pydantic_utils import One, Some
+
+from backend.bronze.base_client import ClientModel
 
 MET_OFFICE_LIVE_URL = "https://data.hub.api.metoffice.gov.uk"
 MET_OFFICE_USER_URL = "https://datahub.metoffice.gov.uk"
 
 
-class _MetOfficeClientConfig(BaseSettings):
-    """Private config model.
+class _MetOfficeClientConfigMock(BaseModel):
+    client_type: Literal["mock"]
 
-    use met_office_client_factory() to instantiate this model.
-
-    provides utilities to create a httpx.client for the service.
-
-    Servic can either be the mock service, or live api.
-    """
-
-    model_config = SettingsConfigDict(
-        env_file=".env",  # Reads from a local .env file if present.
-        env_file_encoding="utf-8",
-        extra="ignore",
-    )
-    secret: SecretStr = Field(..., validation_alias="MET_OFFICE_CLIENT_SECRET")
     base_url: HttpUrl = Field(
-        MET_OFFICE_LIVE_URL,
-        validation_alias="MET_OFFICE_URL",
-        validate_default=True,
+        ...,
+        validation_alias="mock_url",
+        description="The base_url is required for mock service as the user must spin the service up.",
+    )
+    secret: SecretStr = Field(
+        SecretStr("apikey"),
+        frozen=True,  # prevents pydantic-settings changing the default value in the nested model
+    )
+
+
+class _MetOfficeClientConfigLive(BaseModel):
+    client_type: Literal["live"]
+
+    base_url: HttpUrl = Field(
+        HttpUrl("https://data.hub.api.metoffice.gov.uk"),
+        frozen=True,  # prevents pydantic-settings changing the default value in the nested model
+    )
+    secret: SecretStr = Field(
+        ...,
+        validation_alias="live_secret",
+        description="The secret is required for live service as the user must register for the api.",
+        min_length=10,
+    )
+
+
+class MetOfficeClientConfig(ClientModel):
+    met_office: _MetOfficeClientConfigLive | _MetOfficeClientConfigMock = Field(
+        default_factory=dict, discriminator="client_type"
     )
 
     def add_auth_header(self, request: httpx.Request) -> httpx.Request:
@@ -48,7 +61,7 @@ class _MetOfficeClientConfig(BaseSettings):
         Returns:
             httpx.Request: The same request instance with its "apikey" header set.
         """
-        request.headers["apikey"] = self.secret.get_secret_value()
+        request.headers["apikey"] = self.met_office.secret.get_secret_value()
         return request
 
     @asynccontextmanager
@@ -62,7 +75,7 @@ class _MetOfficeClientConfig(BaseSettings):
             from the client's secret, and `Accept: application/json` set.
         """
         async with httpx.AsyncClient(
-            base_url=self.base_url.encoded_string(),
+            base_url=self.met_office.base_url.encoded_string(),
             auth=self.add_auth_header,
             headers={
                 "accept": "application/json",
@@ -82,7 +95,7 @@ class _MetOfficeClientConfig(BaseSettings):
             httpx.Client: A configured synchronous HTTP client instance.
         """
         with httpx.Client(
-            base_url=self.base_url.encoded_string(),
+            base_url=self.met_office.base_url.encoded_string(),
             auth=self.add_auth_header,
             headers={
                 "accept": "application/json",
@@ -91,33 +104,8 @@ class _MetOfficeClientConfig(BaseSettings):
             yield session
 
 
-# TODO: consider redesign of context switching.
-# Pydantic settings discourages using model_validate in this way
-def met_office_client_factory(use_mock: bool | None = None) -> _MetOfficeClientConfig:
-    """
-    Produce a _MetOfficeClientConfig configured for mock or live Met Office API access.
-
-    If `use_mock` is None, selection is based on whether the environment variable `MET_OFFICE_URL` is present. When `use_mock` is True, the returned config is primed for testing with a fixed client secret. When False, the returned config is set up for the live Met Office service using the module's live base URL.
-
-    Parameters:
-        use_mock: When True, return a config populated with a fixed mock secret. When False, return a config populated for live use. When None, select mode based on presence of `MET_OFFICE_URL` in the environment.
-
-    Returns:
-        _MetOfficeClientConfig: A configured client settings object ready for creating HTTP clients.
-    """
-    if use_mock is None:
-        use_mock = os.getenv("MET_OFFICE_URL") is not None
-    if use_mock:
-        return _MetOfficeClientConfig.model_validate(
-            {"MET_OFFICE_CLIENT_SECRET": "apikey"}
-        )
-    return _MetOfficeClientConfig.model_validate(
-        {"MET_OFFICE_URL": MET_OFFICE_LIVE_URL}
-    )
-
-
 async def get_observation_async(
-    client_session: httpx.AsyncClient, geohash: str
+    client_session: httpx.AsyncClient, geohash: str, version: str = "1"
 ) -> bytes:
     """
     Retrieve the raw response body for a land observation identified by `geohash`.
@@ -131,12 +119,14 @@ async def get_observation_async(
     Raises:
         httpx.HTTPStatusError: If the HTTP response status is not 2xx.
     """
-    response = await client_session.get(f"/observation-land/1/{geohash}")
+    response = await client_session.get(f"/observation-land/{version}/{geohash}")
     response.raise_for_status()
     return response.content
 
 
-def get_observation(client_session: httpx.Client, geohash: str) -> bytes:
+def get_observation(
+    client_session: httpx.Client, geohash: str, version: str = "1"
+) -> bytes:
     """
     Fetches land observation data for the given geohash from the Met Office API.
 
@@ -146,7 +136,7 @@ def get_observation(client_session: httpx.Client, geohash: str) -> bytes:
     Returns:
         bytes: Raw response body (JSON) returned by the API.
     """
-    response = client_session.get(f"/observation-land/1/{geohash}")
+    response = client_session.get(f"/observation-land/{version}/{geohash}")
     response.raise_for_status()
     return response.content
 
@@ -176,7 +166,7 @@ def get_nearest(
 
 
 if __name__ == "__main__":
-    cfg = met_office_client_factory()
+    cfg = MetOfficeClientConfig()
     with cfg.api_client() as client:
         nearest = (
             One[MetOfficeLandObservationStation]
@@ -184,7 +174,7 @@ if __name__ == "__main__":
             .item
         )
         observation = (
-            Some[MetOfficeLandObservation]
+            Some[MetOfficeLandObservationV1]
             .model_validate_json(get_observation(client, nearest.geohash))
             .root
         )
