@@ -92,7 +92,7 @@ class _MetOfficeClientConfig(BaseSettings):
 
 
 # TODO: consider redesign of context switching.
-# Pydantic settings discourages using model_vaidate in this way
+# Pydantic settings discourages using model_validate in this way
 def met_office_client_factory(use_mock: bool | None = None) -> _MetOfficeClientConfig:
     """
     Produce a _MetOfficeClientConfig configured for mock or live Met Office API access.
