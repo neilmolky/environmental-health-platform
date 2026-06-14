@@ -1,11 +1,13 @@
 volumes:
+  # Explicitly name the volumes to prevent docker compose using underscores
+  # underscores are not valid under under RFC 952 and RFC 1123
   aws-data:
     name: "environmental-health-platform-aws-data"
   azure-data:
     name: "environmental-health-platform-azure-data"
 
 networks:
-  # Explicitly name the networks to prevent docher compose using underscores
+  # Explicitly name the networks to prevent docker compose using underscores
   # underscores are not valid under under RFC 952 and RFC 1123
   group-mesh:
     name: "environmental-health-platform-group-mesh"
@@ -47,7 +49,6 @@ services:
       - blob-access
     environment:
       <<: [*storage-env, *uv-env]
-      UV_LINK_MODE: copy
       PREFECT_API_URL: ${PREFECT_API_URL:-http://prefect-server:4200/api}
       MET_OFFICE_URL: http://mock:8001
     command: sleep infinity

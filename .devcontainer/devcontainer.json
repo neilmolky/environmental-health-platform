@@ -15,10 +15,10 @@
     "frontend:2718"
   ],
   "portsAttributes": {
-    "8000": { "label": "FastAPI Core Analytics Engine", "onAutoForward": "notify" },
-    "8001": { "label": "Mock UK Met Office API", "onAutoForward": "notify" },
-    "4200": { "label": "Prefect Dashboard UI", "onAutoForward": "notify" },
-    "2718": { "label": "Marimo Interactive Dashboard", "onAutoForward": "notify" }
+    "8000": { "label": "FastAPI Core Analytics Engine", "onAutoForward": "ignore", "requireLocalPort": true },
+    "8001": { "label": "Mock UK Met Office API", "onAutoForward": "ignore", "requireLocalPort": true },
+    "4200": { "label": "Prefect Dashboard UI", "onAutoForward": "ignore", "requireLocalPort": true },
+    "2718": { "label": "Marimo Interactive Dashboard", "onAutoForward": "ignore", "requireLocalPort": true }
   },
   "customizations": {
     "vscode": {

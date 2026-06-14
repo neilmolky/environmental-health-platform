@@ -1,7 +1,7 @@
 [project]
 name = "utils"
 version = "0.1.0"
-description = "Add your description here"
+description = "Common utilities and code that is required by different workspaces. Utils is the only package that should be a shared dependency for all workspaces."
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
