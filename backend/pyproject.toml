@@ -18,9 +18,14 @@ dependencies = [
     "utils"
 ]
 
+[build-system]
+requires = ["hatchling>=1.18"]
+build-backend = "hatchling.build"
+
 [tool.uv.sources]
 utils = { workspace = true }
 
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"frontend".msg = "Architectural Breach: Shared logic must only live in utils."
+"api".msg = "Architectural Breach: Shared logic must only live in utils."
+"mock".msg = "Architectural Breach: Shared logic must only live in utils."

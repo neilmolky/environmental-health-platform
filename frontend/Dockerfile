@@ -1,35 +1,34 @@
-# Stage 1: Build frontend and install native geospatial C-libraries
-FROM ghcr.io/astral-sh/uv:python3.13-trixie AS builder
-ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy
-WORKDIR /app
+FROM ghcr.io/astral-sh/uv:0.11.21-python3.13-trixie
+WORKDIR /workspace
 
-# Install required C-binaries for compiling spatial packages (GeoPandas/Fiona)
+# 1. Update system baseline and install native geospatial C-libraries as root
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    git curl ca-certificates \
     gdal-bin libgdal-dev libgeos-dev libproj-dev build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-COPY pyproject.toml uv.lock ./
-COPY frontend/pyproject.toml frontend/
-
-RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --no-dev --no-install-workspace --package frontend
-
-# Stage 2: Clean, optimized Frontend Runtime
-FROM python:3.13-slim-trixie
-WORKDIR /app
-
-# FIX: Core dynamic runtime library identifiers updated for Debian Trixie
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    libgdal36 \
-    libgeos-c1t64 \
-    libproj25 \
-    && rm -rf /var/lib/apt/lists/*
-
-COPY --from=builder /app/.venv /app/.venv
-COPY frontend/ /app/frontend/
-
-ENV PATH="/app/.venv/bin:$PATH"
+# 2. add the location of the venv to the path
+ENV PATH="/workspace/.venv/bin:$PATH"
 ENV PYTHONUNBUFFERED=1
 
+# 3. Copy the global workspace configurations
+COPY pyproject.toml uv.lock ./
+COPY frontend/pyproject.toml /workspace/frontend/
+COPY utils/pyproject.toml /workspace/utils/
+
+# 4. sync only required dependencies
+RUN uv sync --frozen --no-dev --no-install-workspace --package frontend
+
+# 5. Copy source code into the active image workspace
+COPY frontend/ /workspace/frontend/
+COPY utils/ /workspace/utils/
+
+# 6. export uv dependencies to PATH and support log outputs for containers
+ENV PATH="/workspace/.venv/bin:$PATH"
+ENV PYTHONUNBUFFERED=1
+
+# 7. Expose the service
 EXPOSE 2718
-CMD ["marimo", "run", "frontend/health_analysis.py", "--host", "0.0.0.0", "--port", "2718"]
+
+# Generic fallback command. Overridden dynamically by docker-compose
+CMD ["python3"]

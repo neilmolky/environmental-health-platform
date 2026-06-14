@@ -1,15 +1,25 @@
 {
   "name": "Environmental Health Platform (Workspace)",
   "dockerComposeFile": [
-    "../docker-compose.yml"
+    "../docker-compose.yml",
+    "docker-compose.dev.yml"
   ],
   "service": "backend",
   "workspaceFolder": "/workspace",
-  "runServices": [
-    "backend",
-    "minio",
-    "azurite"
+  "remoteUser": "dev",
+  "postCreateCommand": "uv sync --frozen --all-packages",
+  "forwardPorts": [
+    "api:8000",
+    "mock:8001",
+    "prefect-server:4200",
+    "frontend:2718"
   ],
+  "portsAttributes": {
+    "8000": { "label": "FastAPI Core Analytics Engine", "onAutoForward": "ignore", "requireLocalPort": true },
+    "8001": { "label": "Mock UK Met Office API", "onAutoForward": "ignore", "requireLocalPort": true },
+    "4200": { "label": "Prefect Dashboard UI", "onAutoForward": "ignore", "requireLocalPort": true },
+    "2718": { "label": "Marimo Interactive Dashboard", "onAutoForward": "ignore", "requireLocalPort": true }
+  },
   "customizations": {
     "vscode": {
       "extensions": [
@@ -19,20 +29,17 @@
         "astral-sh.ty"
       ],
       "settings": {
-        "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
+        "terminal.integrated.defaultProfile.linux": "bash",  
+        "python.defaultInterpreterPath": "${workspaceFolder}/.devcontainer/.venv/bin/python",
         "python.analysis.extraPaths": [
           "${workspaceFolder}/backend",
           "${workspaceFolder}/api",
           "${workspaceFolder}/frontend",
           "${workspaceFolder}/utils",
-          "${workspaceFolder}/mock_services"
+          "${workspaceFolder}/mock"
         ],
         "python.testing.pytestEnabled": true,
-        "python.testing.pytestArgs": [
-          "backend",
-          "api",
-          "frontend"
-        ],
+        "python.testing.pytestArgs": [],
         
         "python.languageServer": "None",
 
@@ -45,8 +52,6 @@
           }
         }
       }
-    },
-    "remoteUser": "root",
-    "postCreateCommand": "uv sync --frozen --all-packages"
+    }
   }
 }

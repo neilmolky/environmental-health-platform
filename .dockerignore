@@ -3,12 +3,11 @@ venv/
 env/
 .uv_cache/
 .workspace_uv_cache/
-.env
 
 **/__pycache__/
 **/*.pyc
 **/*.pyo
-**/*.pyd
+**/*.
 **/*.egg-info
 
 .pytest_cache/

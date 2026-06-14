@@ -21,5 +21,73 @@ git clone https://github.com/neilmolky/environmental-health-platform
 cd environmental-health-platform 
 docker compose up
 ```
+4. **Useage**: with the services deployed, you should be able to access 4 endpoints in your browser. Ensure no other services are running on these ports.
+    - localhost:8000 -> The api analysts would use to get data or manually trigger pipelines.
+    - localhost:8001 -> The fake api mock service mirrors.
+    - localhost:4200 -> The prefect server orchestrating data pipelines
+    - localhost:2718 -> The marimo interactive analysis platform
 
 *See also: CONTRIBUTING.md explains how to set up a dev-container if you want to add features and test them locally*
+
+
+# System Design
+The system exposes 4 ports as services. 
+
+```mermaid
+graph TD;
+    %% --- ZERO TRUST STACKS ---
+    subgraph Storage-Backend ["🔒 Storage Workspace (blob-access Network)"]
+        direction LR
+        bronze[(🥉 Bronze Layer)] --> silver[(🥈 Silver Layer)] --> gold[(🥇 Gold Layer)]
+    end
+
+    subgraph Core-Mesh ["🌐 Service Control Mesh (platform-mesh Network)"]
+        direction TB
+        
+        subgraph backend-service ["🛠️ Backend Dev / Worker"]
+            data-pipeline[Prefect Pipelines & Sensors]
+            storage-client-back[Abstract Storage Interface]
+            data-pipeline <--> storage-client-back
+        end
+
+        subgraph api-service ["⚡ FastAPI Analytics Gateway"]
+            get-data[GET /api/v1/metrics]
+            trigger-pipeline[POST /api/v1/trigger-ingestion]
+            storage-client-api[Abstract Storage Interface]
+            get-data <--> storage-client-api
+        end
+
+        subgraph orchestration ["🎛️ Orchestration Center"]
+            prefect-server[Prefect 3.x Server]
+        end
+
+        subgraph mock ["🧪 Test Simulator Space"]
+            met-office-mock[Met Office API Simulator]
+        end
+
+        subgraph frontend-service ["📊 Presentation & Analytical Space"]
+            marimo-notebook[Marimo Analytics Dashboard]
+        end
+    end
+
+    %% --- INTER-CONTAINER NETWORKING & DATA PIPELINES ---
+    storage-client-back <==> Storage-Backend
+    storage-client-api <==> gold
+
+    trigger-pipeline ==> |HTTP Control Signal| prefect-server
+    prefect-server <==> |Pipeline State Synch| data-pipeline
+    data-pipeline -.-> |HTTP Ingestion Request| met-office-mock
+    marimo-notebook ==> |REST Data Queries| get-data
+
+    %% --- EXPOSED USER PORTS ---
+    user((🧑‍💻 Data Analyst / Engineer)) <-- port:8000 --> api-service
+    user <-- port:2718 --> marimo-notebook
+    user <-- port:4200 --> prefect-server
+    user <-- port:8001 --> mock
+
+    %% --- VISUAL REFINEMENTS ---
+    style Storage-Backend fill:#f9f,stroke:#333,stroke-width:2px
+    style Core-Mesh fill:#bbf,stroke:#333,stroke-width:1px
+    style user fill:#fff,stroke:#333,stroke-width:2px
+
+```

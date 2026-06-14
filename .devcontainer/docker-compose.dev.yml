@@ -1,0 +1,13 @@
+services:
+  # override the ports exposed in docker compose and handle port forwarding with devcontainer.json
+  prefect-server:
+    ports: !override []
+  
+  api:
+    ports: !override []
+
+  mock:
+    ports: !override []
+
+  frontend:
+    ports: !override []

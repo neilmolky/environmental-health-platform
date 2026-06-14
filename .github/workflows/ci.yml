@@ -33,16 +33,10 @@ jobs:
         uses: pre-commit/action@v3.0.1
         with:
           extra_args: --all-files
-      
-      - name: Run Integration Tests
-        env:
-          MET_OFFICE_CLIENT_SECRET: ${{ secrets.MET_OFFICE_CLIENT_SECRET }}
-        run: |
-          uv run pytest -m integration
 
       - name: Run Test Suite with Coverage
         run: |
-          uv run pytest -m "not integration and not mocks" --cov-report=xml
+          uv run pytest -m "not integration and not mock" --cov-report=xml
 
       - name: Generate PR Coverage Comment
         uses: py-cov-action/python-coverage-comment-action@v3

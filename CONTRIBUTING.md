@@ -20,6 +20,18 @@ Once your host machine matches the steps above:
 4. You should be able to begin development immediately. All the infrastructure, dependencies, tool integrations will be available. 
 5. To view the services: Look at the "Ports" tab at the bottom of VS Code to see all running services and click the globe icon to open them in your browser. The dev container reloads your code changes through the uvicorn server. 
 
+### Dev build - Advanced information
+
+The Dev build is setup to optimise the development experience. For users who prefer to work with the cli
+```shell
+docker compose up
+```
+This command is still fully supported for development.
+
+to expose ports in vscode and allow dev's access to the remotes, docker-compose.dev.yml overwrites the port forwarding and allows devcontainer.json to take care of this instead.
+
+The Dockerfile.dev optimise the initial build by installing --all-packages in each container and creating a cache. issues with sharing the local drive for venv's led to a setup where development packages all use all-packages. ruff linting rules enforce sense checks.
+
 ---
 
 # Tools
@@ -41,8 +53,9 @@ The following commands which run in CI can be run locally to validate your build
 ```bash
 uv sync                                          # ensure dependencies are up to date
 uv run pre-commit run --all-files                # runs ruff, ty and other linting tools
-uv run pytest -m 'not integration and not mocks' # runs the unittests that require no configuration or external services
-uv run pytest                                    # run the full suite of tests, mocks are not run in ci
+uv run pytest -m 'not integration and not mocks' # runs the unittests that do not depend on running containers or credentials. This is the command that runs in CI
+uv run pytest                                    # run the full suite of tests which may fail if containers are not running or credentials are not provided. Essentially, these include integration and end to end tests.
+docker compose up                                # starts all services @ localhost:{port}
 ```
 
 ## 📋 Conventional Commit Standards
@@ -77,7 +90,9 @@ feat(backend): add pipeline for air quality
 * `backend`: Data ingestion scripts, Prefect flows, or storage adapters.
 * `api`: FastAPI route handlers, gateways, or access controllers.
 * `frontend`: Marimo dashboards or geospatial analytics viewports.
-
+* `mock`: Mocked API endpoints for cost limitaton during development.
+* `utils`: Utility code shared across the codebase.
+* `infra`: Wider project infrastructure including changes that affect multiple workspaces.
 ---
 
 ## 🛠️ Local Quality Validation (Pre-Commit Hooks)
@@ -103,5 +118,5 @@ uv run pre-commit run --all-files
 All unit and integration tests are co-located right inside their respective service directories. Before pushing your branch, execute the localized test runner inside your active development container:
 
 ```bash
-uv run pytest backend/
+uv run pytest -m 'not integration and not mocks'
 ```

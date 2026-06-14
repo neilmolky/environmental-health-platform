@@ -1,11 +1,26 @@
 repos:
   # 1. Enforce Conventional Commit Message Standards
   - repo: https://github.com/compilerla/conventional-pre-commit
-    rev: v3.6.0
+    rev: v4.4.0
     hooks:
       - id: conventional-pre-commit
         stages: [commit-msg]
-        args: [--scopes, 'infra,backend,api,frontend,mock_services,utils', --verbose, build, chore, ci, docs, feat, fix, refactor, test, style, revert]
+        args: [
+          --scopes, 
+          'infra,backend,api,frontend,mock,utils', 
+          --verbose, 
+          build, 
+          chore, 
+          ci, 
+          docs, 
+          feat, 
+          fix, 
+          perf, 
+          refactor, 
+          revert, 
+          style, 
+          test
+        ]
 
   # 2. Automated Python Code Quality Guard (Ruff)
   - repo: local
@@ -38,6 +53,7 @@ repos:
     hooks:
       - id: check-yaml
         stages: [pre-commit]
+        args: [--unsafe] # Required for YAML anchors in docker-compose.yml
       - id: check-toml
         stages: [pre-commit]
       - id: end-of-file-fixer

@@ -4,7 +4,8 @@ import httpx
 import pytest
 from fastapi import status
 from fastapi.testclient import TestClient
-from mock_services.main import (
+
+from mock.met_office import (
     MOCK_GEOHASH_DB,
     MOCK_OBSERVATION_DB,
     MOCK_STATION_COORDINATES,

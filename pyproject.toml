@@ -9,6 +9,10 @@ dependencies = []
 [tool.uv]
 package = false
 
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
 [tool.uv.workspace]
 # Maps all structural nodes explicitly
 members = [
@@ -16,7 +20,7 @@ members = [
     "api",
     "frontend",
     "utils",
-    "mock_services",
+    "mock",
 ]
 
 [tool.ruff]
@@ -35,6 +39,7 @@ select = [
     "DTZ",  # flake8-datetimez (Forbids timezone-naive datetimes)
     "SIM",  # flake8-simplify (Code structural streamlining)
     "BLE",  # flake8-blind-except (Blocks broad catch-all exceptions)
+    "TID",  # flake8-tidy-imports, (allows configuration of banned-api)
 ]
 
 [tool.ruff.format]
@@ -46,10 +51,6 @@ allow-star-arg-any = false
 ignore-fully-untyped = false
 suppress-none-returning = false
 
-[tool.ty.environment]
-# Points ty directly to the unified root virtual environment site-packages
-python = "./.venv/bin/python"
-
 [tool.ty.rules]
 "invalid-argument-type" = "error"
 "invalid-return-type" = "error"
@@ -58,23 +59,23 @@ python = "./.venv/bin/python"
 
 [tool.pytest.ini_options]
 addopts = """
-    --cov=backend/backend 
-    --cov=api/api 
-    --cov=frontend/frontend 
-    --cov=utils/utils 
-    --cov=mock_services/mock_services  
+    --cov=backend/src/backend 
+    --cov=api/src/api 
+    --cov=frontend/src/frontend 
+    --cov=utils/src/utils 
+    --cov=mock/src/mock
     --cov-report=term-missing
 """
 markers = [
     "integration: marks tests as heavy integration or live network smoke tests",
-    "mocks: marks tests as reliant on mock services, only suitable for running in the dev-container",
+    "mock: marks tests as reliant on mock services, only suitable for running in the dev-container",
 ]
 testpaths = [
     "backend/tests",
     "api/tests",
     "frontend/tests",
     "utils/tests",
-    "mock_services/tests"
+    "mock/tests"
 ]
 
 [tool.coverage.report]
