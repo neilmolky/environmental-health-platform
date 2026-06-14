@@ -49,7 +49,7 @@ services:
       <<: [*storage-env, *uv-env]
       UV_LINK_MODE: copy
       PREFECT_API_URL: ${PREFECT_API_URL:-http://prefect-server:4200/api}
-      MET_OFFICE_MOCK_URL: http://mock:8001
+      MET_OFFICE_URL: http://mock:8001
     command: sleep infinity
 
   # --- ORCHESTRATION LAYER ---
