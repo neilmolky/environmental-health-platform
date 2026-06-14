@@ -120,7 +120,6 @@ services:
   # --- STORAGE EMULATORS ---
   minio:
     image: minio/minio:latest
-    profiles: ["aws"]
     ports:
       - "9000:9000"
       - "9001:9001"
@@ -132,7 +131,6 @@ services:
 
   azurite:
     image: mcr.microsoft.com/azure-storage/azurite:latest
-    profiles: ["azure"]
     ports:
       - "10000:10000"
     networks:
