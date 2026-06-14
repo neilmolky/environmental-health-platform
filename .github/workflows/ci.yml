@@ -36,7 +36,7 @@ jobs:
 
       - name: Run Test Suite with Coverage
         run: |
-          uv run pytest -m "not integration and not mocks" --cov-report=xml
+          uv run pytest -m "not integration and not mock" --cov-report=xml
 
       - name: Generate PR Coverage Comment
         uses: py-cov-action/python-coverage-comment-action@v3
