@@ -1,0 +1,3 @@
+- run: uv run module:main
+  env:
+    IMAGE_TAG: my-registry.com/my-image:${{ github.sha }}

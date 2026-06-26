@@ -2,11 +2,11 @@ import math
 import random
 from datetime import datetime
 
+import patito as pt
 from polyfactory.factories.pydantic_factory import ModelFactory
-from pydantic import BaseModel, Field
 
 
-class LatLon(BaseModel, frozen=True):
+class LatLon(pt.Model, frozen=True):
     """
     Helper Model, validates latitude and longitude values against permitted latitude and
     longitudes defined by Met Office Api
@@ -14,8 +14,13 @@ class LatLon(BaseModel, frozen=True):
     frozen to enable hashing
     """
 
-    lat: float = Field(..., ge=-90.0, le=90.0, description="Target query latitude")
-    lon: float = Field(..., ge=-180.0, le=180.0, description="Target query longitude")
+    lat: float = pt.Field(..., ge=-90.0, le=90.0, description="Target query latitude")
+    lon: float = pt.Field(
+        ..., ge=-180.0, le=180.0, description="Target query longitude"
+    )
+
+    def __str__(self) -> str:
+        return f"{self.lat:+f},{self.lon:+f}"
 
     @property
     def lat_radians(self) -> float:
@@ -88,9 +93,7 @@ class LatLonFactory(ModelFactory[LatLon]):
         return round(random.uniform(-7.0, 1.5), 4)
 
 
-class MetOfficeLandObservationV1(BaseModel):
-    """/observation-land/1/{geohash}"""
-
+class MetOfficeLandObservationV1(pt.Model):
     datetime: datetime
     """Date of the observation."""
     humidity: int | None
@@ -113,13 +116,11 @@ class MetOfficeLandObservationV1(BaseModel):
     """Wind speed in m/s."""
 
 
-class MetOfficeLandObservationFactory(ModelFactory[MetOfficeLandObservationV1]):
+class MetOfficeLandObservationV1Factory(ModelFactory[MetOfficeLandObservationV1]):
     __model__ = MetOfficeLandObservationV1
 
 
-class MetOfficeLandObservationStation(BaseModel):
-    """/observation-land/1/nearest"""
-
+class MetOfficeLandObservationStationV1(pt.Model):
     geohash: str
     """Geohash of the observation location"""
     area: str
@@ -133,58 +134,6 @@ class MetOfficeLandObservationStation(BaseModel):
 
 
 class MetOfficeLandObservationStationFactory(
-    ModelFactory[MetOfficeLandObservationStation]
+    ModelFactory[MetOfficeLandObservationStationV1]
 ):
-    __model__ = MetOfficeLandObservationStation
-
-
-class MetOfficeLandObservationRecord(LatLon, frozen=True):
-    """
-    The unified, version-controlled compilation target.
-    Uses composition to cleanly separate input targets from network resolutions.
-    """
-
-    station_meta: MetOfficeLandObservationStation | None = Field(
-        None, description="Resolved station metadata details from the live network"
-    )
-    added_to_registry: datetime | None = Field(
-        default=None,
-        description=(
-            "Audit tracking marker indicating exactly when this coordinate pair "
-            "was compiled"
-        ),
-    )
-
-    def __eq__(self, other: object) -> bool:
-        """
-        Determine whether another record represents the same geographic coordinates.
-
-        Returns:
-            `True` if `other` is a `MetOfficeLandObservationRecord`
-            with the same `lat` and `lon`, `False` otherwise.
-        """
-        if not isinstance(other, MetOfficeLandObservationRecord):
-            return False
-        # Two records are equal if their coordinates match, regardless of cache state
-        return self.lat == other.lat and self.lon == other.lon
-
-    def __hash__(self) -> int:
-        """
-        Compute a hash value for the record using its latitude and longitude.
-
-        Returns:
-            int: Hash derived from the `(lat, lon)` coordinate pair.
-        """
-        return hash((self.lat, self.lon))
-
-    @property
-    def is_cached(self) -> bool:
-        """
-        Indicates whether the record has resolved both
-        station metadata and a registry timestamp.
-
-        Returns:
-            bool: `True` if both `station_meta` and `added_to_registry` are present,
-                  `False` otherwise.
-        """
-        return (self.station_meta is not None) and (self.added_to_registry is not None)
+    __model__ = MetOfficeLandObservationStationV1

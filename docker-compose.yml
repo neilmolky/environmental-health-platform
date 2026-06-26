@@ -1,28 +1,36 @@
 volumes:
   # Explicitly name the volumes to prevent docker compose using underscores
   # underscores are not valid under under RFC 952 and RFC 1123
-  aws-data:
-    name: "environmental-health-platform-aws-data"
-  azure-data:
-    name: "environmental-health-platform-azure-data"
+  ehp-aws-data:
+    name: ehp-aws-data
+  ehp-azure-data:
+    name: ehp-azure-data
+  ehp-prefect-postgres:
+    name: ehp-prefect-postgres
+  ehp-prefect-redis:
+    name: ehp-prefect-redis
 
 networks:
-  # Explicitly name the networks to prevent docker compose using underscores
-  # underscores are not valid under under RFC 952 and RFC 1123
-  group-mesh:
-    name: "environmental-health-platform-group-mesh"
+  ehp-group-mesh:
     driver: bridge
-  blob-access:
-    name: "environmental-health-platform-blob-access"
+    name: ehp-group-mesh
+  ehp-blob-access:
     driver: bridge
+    name: ehp-blob-access
+  ehp-orchestration-mesh:
+    driver: bridge
+    name: ehp-orchestration-mesh
 
 # Storage Env Variables required only by backend and api services
 x-storage-env: &storage-env
-  STORAGE_BACKEND: ${STORAGE_BACKEND:-aws}
+  STORAGE__BACKEND: ${STORAGE__BACKEND:-aws}
   AWS_ENDPOINT_URL: ${AWS_ENDPOINT_URL:-http://minio:9000}
   AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-minioadmin}
   AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-minioadmin}
-  AZURE_STORAGE_CONNECTION_STRING: ${AZURE_STORAGE_CONNECTION_STRING:-DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;}
+  AZURE_STORAGE_ENDPOINT: ${AZURE_STORAGE_ENDPOINT:-http://azurite:10000/devstoreaccount1}
+  AZURE_STORAGE_USE_EMULATOR: ${AZURE_STORAGE_USE_EMULATOR:-true}
+  AZURE_STORAGE_ACCOUNT_KEY: ${AZURE_STORAGE_ACCOUNT_KEY:-Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==}
+  AZURE_STORAGE_ACCOUNT_NAME: ${AZURE_STORAGE_ACCOUNT_NAME:-devstoreaccount1}
 
 x-uv-env: &uv-env
   UV_PROJECT_ENVIRONMENT: /workspace/.devcontainer/.venv
@@ -31,11 +39,22 @@ x-uv-env: &uv-env
   UV_LINK_MODE: copy
   PYTHONUNBUFFERED: 1
 
-x-client-env: &client_env
+x-client-env: &client-env
   MET_OFFICE__CLIENT_TYPE: ${MET_OFFICE__CLIENT_TYPE:-mock}
   MET_OFFICE__MOCK_URL: ${MET_OFFICE__MOCK_URL:-http://mock:8001}
   MET_OFFICE__LIVE_SECRET: ${MET_OFFICE__LIVE_SECRET}
 
+x-prefect-internal-env: &prefect-internal-env
+  PREFECT_API_DATABASE_CONNECTION_URL: postgresql+asyncpg://prefect:prefect@prefect-db:5432/prefect
+  PREFECT_MESSAGING_BROKER: prefect_redis.messaging
+  PREFECT_MESSAGING_CACHE: prefect_redis.messaging
+  PREFECT_REDIS_MESSAGING_HOST: prefect-broker
+  PREFECT_REDIS_MESSAGING_PORT: 6379
+  PREFECT_REDIS_MESSAGING_DB: 0
+
+x-prefect-env: &prefect-env
+  PREFECT_SERVER_API_HOST: 0.0.0.0
+  PREFECT_SERVER_UI_API_URL: http://prefect-server:4200/api
 
 services:
   # --- BACKEND CORE / DEV CONTAINER HOST ---
@@ -50,24 +69,14 @@ services:
       - .:/workspace
     working_dir: /workspace
     networks:
-      - group-mesh
-      - blob-access
+      - ehp-group-mesh
+      - ehp-blob-access
+    depends_on:
+      prefect-server:
+        condition: service_healthy
     environment:
-      <<: [*storage-env, *uv-env, *client_env]
-      PREFECT_API_URL: ${PREFECT_API_URL:-http://prefect-server:4200/api}
+      <<: [*storage-env, *uv-env, *client-env, *prefect-env]
     command: sleep infinity
-
-  # --- ORCHESTRATION LAYER ---
-  prefect-server:
-    image: prefecthq/prefect:3-latest
-    environment:
-      PREFECT_SERVER_API_HOST: 0.0.0.0
-      PREFECT_API_URL: ${PREFECT_API_URL:-http://prefect-server:4200/api}
-    ports:
-      - "4200:4200"
-    networks:
-      - group-mesh
-    command: prefect server start
 
   # --- FASTAPI SERVER ---
   api:
@@ -78,13 +87,16 @@ services:
     ports:
       - "8000:8000"
     networks:
-      - group-mesh
-      - blob-access
+      - ehp-group-mesh
+      - ehp-blob-access
     volumes:
       - .:/workspace
     working_dir: /workspace
+    depends_on:
+      prefect-server:
+        condition: service_healthy
     environment:
-      <<: [*storage-env, *uv-env]
+      <<: [*storage-env, *uv-env, *prefect-env]
     command: uv run uvicorn api:app --host 0.0.0.0 --port 8000 --reload
 
   # --- API SIMULATOR ---
@@ -96,7 +108,7 @@ services:
     ports:
       - "8001:8001"
     networks:
-      - group-mesh
+      - ehp-group-mesh
     volumes:
       - .:/workspace
     environment:
@@ -113,7 +125,7 @@ services:
     ports:
       - "2718:2718"
     networks:
-      - group-mesh
+      - ehp-group-mesh
     volumes:
       - .:/workspace
     working_dir: /workspace
@@ -128,9 +140,9 @@ services:
       - "9000:9000"
       - "9001:9001"
     networks:
-      - blob-access
+      - ehp-blob-access
     volumes:
-      - aws-data:/data
+      - ehp-aws-data:/data
     command: server /data --console-address ":9001"
 
   azurite:
@@ -138,7 +150,81 @@ services:
     ports:
       - "10000:10000"
     networks:
-      - blob-access
+      - ehp-blob-access
     volumes:
-      - azure-data:/data
+      - ehp-azure-data:/data
     command: azurite-blob --blobHost 0.0.0.0 --blobPort 10000 --location /data --skipApiVersionCheck
+
+  # --- ORCHESTRATION LAYER ---
+  prefect-db:
+    image: postgres:14
+    environment:
+      POSTGRES_USER: prefect
+      POSTGRES_PASSWORD: prefect
+      POSTGRES_DB: prefect
+    volumes:
+      - ehp-prefect-postgres:/var/lib/postgresql/data
+    networks:
+      - ehp-orchestration-mesh
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U prefect"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  prefect-broker:
+    image: redis:7
+    volumes:
+      - ehp-prefect-redis:/data
+    networks:
+      - ehp-orchestration-mesh
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  prefect-server:
+    image: prefecthq/prefect:3-latest
+    depends_on:
+      prefect-db:
+        condition: service_healthy
+      prefect-broker:
+        condition: service_healthy
+    environment:
+      <<: [*prefect-env, *prefect-internal-env]
+    command: prefect server start --no-services
+    networks:
+        - ehp-orchestration-mesh
+        - ehp-group-mesh
+    ports:
+      - "4200:4200"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request as u; u.urlopen('http://localhost:4200/api/health', timeout=1)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  prefect-services:
+    image: prefecthq/prefect:3-latest
+    depends_on:
+      prefect-server:
+        condition: service_healthy
+    networks:
+      - ehp-orchestration-mesh
+    environment:
+      <<: *prefect-internal-env
+    command: prefect server services start
+
+  prefect-worker:
+    image: prefecthq/prefect:3-latest
+    depends_on:
+      prefect-server:
+        condition: service_healthy
+    networks:
+      - ehp-orchestration-mesh
+    environment:
+      PREFECT_API_URL: http://prefect-server:4200/api
+    command: prefect worker start --pool local-pool
+    restart: on-failure

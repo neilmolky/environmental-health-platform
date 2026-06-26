@@ -6,21 +6,28 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "adlfs>=2026.5.0",
+    "deltalake>=1.6.1",
     "fsspec>=2026.4.0",
     "httpx>=0.28.1",
+    "obspec>=0.1.0",
+    "obstore>=0.10.1",
     "patito>=0.8.6",
+    "pendulum>=3.2.0",
     "polars>=1.41.2",
     "polyfactory>=3.3.0",
     "prefect>=3.7.3",
     "pydantic>=2.13.4",
     "pydantic-settings>=2.14.1",
     "s3fs>=2026.4.0",
-    "utils"
+    "utils",
 ]
 
 [build-system]
 requires = ["hatchling>=1.18"]
 build-backend = "hatchling.build"
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
 
 [tool.uv.sources]
 utils = { workspace = true }

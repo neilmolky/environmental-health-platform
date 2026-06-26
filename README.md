@@ -45,7 +45,7 @@ graph TD;
         direction TB
         
         subgraph backend-service ["🛠️ Backend Dev / Worker"]
-            data-pipeline[Prefect Pipelines & Sensors]
+            data-pipeline[Prefect Worker / Pipeline Code]
             storage-client-back[Abstract Storage Interface]
             data-pipeline <--> storage-client-back
         end

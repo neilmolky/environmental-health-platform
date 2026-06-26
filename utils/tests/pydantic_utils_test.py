@@ -1,6 +1,6 @@
 import pytest
 from pydantic import BaseModel, ValidationError
-from utils.pydantic_utils import One, Some
+from utils.models.generic import One, Some
 
 
 class Example(BaseModel):

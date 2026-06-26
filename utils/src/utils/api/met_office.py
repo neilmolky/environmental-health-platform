@@ -3,15 +3,16 @@ from contextlib import asynccontextmanager, contextmanager
 from typing import Literal
 
 import httpx
+from httpx import Response
 from pydantic import BaseModel, Field, HttpUrl, SecretStr
-from utils.met_office_models import (
+
+from utils.api.base_client import ClientModel
+from utils.models.generic import One, Some
+from utils.models.met_office import (
     LatLon,
-    MetOfficeLandObservationStation,
+    MetOfficeLandObservationStationV1,
     MetOfficeLandObservationV1,
 )
-from utils.pydantic_utils import One, Some
-
-from backend.bronze.base_client import ClientModel
 
 MET_OFFICE_LIVE_URL = "https://data.hub.api.metoffice.gov.uk"
 MET_OFFICE_USER_URL = "https://datahub.metoffice.gov.uk"
@@ -23,11 +24,11 @@ class _MetOfficeClientConfigMock(BaseModel):
     base_url: HttpUrl = Field(
         ...,
         validation_alias="mock_url",
-        description="The base_url is required for mock service as the user must spin the service up.",
+        description="The user must spin up a mock service and provide this url.",
     )
     secret: SecretStr = Field(
         SecretStr("apikey"),
-        frozen=True,  # prevents pydantic-settings changing the default value in the nested model
+        frozen=True,  # prevents pydantic-settings changing the default value
     )
 
 
@@ -36,12 +37,12 @@ class _MetOfficeClientConfigLive(BaseModel):
 
     base_url: HttpUrl = Field(
         HttpUrl("https://data.hub.api.metoffice.gov.uk"),
-        frozen=True,  # prevents pydantic-settings changing the default value in the nested model
+        frozen=True,  # prevents pydantic-settings changing the default value
     )
     secret: SecretStr = Field(
         ...,
         validation_alias="live_secret",
-        description="The secret is required for live service as the user must register for the api.",
+        description="the user must register for the live api and provide this secret.",
         min_length=10,
     )
 
@@ -104,9 +105,9 @@ class MetOfficeClientConfig(ClientModel):
             yield session
 
 
-async def get_observation_async(
-    client_session: httpx.AsyncClient, geohash: str, version: str = "1"
-) -> bytes:
+async def aget_observation(
+    client_session: httpx.AsyncClient, geohash: str, version: Literal["1"] = "1"
+) -> Response:
     """
     Retrieve the raw response body for a land observation identified by `geohash`.
 
@@ -121,12 +122,12 @@ async def get_observation_async(
     """
     response = await client_session.get(f"/observation-land/{version}/{geohash}")
     response.raise_for_status()
-    return response.content
+    return response
 
 
 def get_observation(
-    client_session: httpx.Client, geohash: str, version: str = "1"
-) -> bytes:
+    client_session: httpx.Client, geohash: str, version: Literal["1"] = "1"
+) -> Response:
     """
     Fetches land observation data for the given geohash from the Met Office API.
 
@@ -138,14 +139,12 @@ def get_observation(
     """
     response = client_session.get(f"/observation-land/{version}/{geohash}")
     response.raise_for_status()
-    return response.content
+    return response
 
 
-def get_nearest(
-    client: httpx.Client,
-    lat: float,
-    lon: float,
-) -> bytes:
+async def aget_nearest(
+    client: httpx.AsyncClient, lat: float, lon: float, version: Literal["1"] = "1"
+) -> Response:
     """
     Fetch the nearest land observation for the specified geographic coordinates.
 
@@ -160,22 +159,48 @@ def get_nearest(
         httpx.HTTPStatusError: If the HTTP response status is not 2xx.
     """
     params = LatLon.model_validate({"lat": lat, "lon": lon})
-    response = client.get("/observation-land/1/nearest", params=params.model_dump())
+    response = await client.get(
+        f"/observation-land/{version}/nearest", params=params.model_dump()
+    )
     response.raise_for_status()
-    return response.content
+    return response
+
+
+def get_nearest(
+    client: httpx.Client, lat: float, lon: float, version: Literal["1"] = "1"
+) -> Response:
+    """
+    Fetch the nearest land observation for the specified geographic coordinates.
+
+    Parameters:
+        lat (float): Latitude in decimal degrees.
+        lon (float): Longitude in decimal degrees.
+
+    Returns:
+        bytes: Raw response body bytes containing the nearest observation JSON.
+
+    Raises:
+        httpx.HTTPStatusError: If the HTTP response status is not 2xx.
+    """
+    params = LatLon.model_validate({"lat": lat, "lon": lon})
+    response = client.get(
+        f"/observation-land/{version}/nearest", params=params.model_dump()
+    )
+    response.raise_for_status()
+    return response
 
 
 if __name__ == "__main__":
     cfg = MetOfficeClientConfig()
     with cfg.api_client() as client:
         nearest = (
-            One[MetOfficeLandObservationStation]
-            .model_validate_json(get_nearest(client, 50.72, -3.53))
+            One[MetOfficeLandObservationStationV1]
+            .model_validate_json(get_nearest(client, 50.72, -3.53).read())
             .item
         )
         observation = (
             Some[MetOfficeLandObservationV1]
-            .model_validate_json(get_observation(client, nearest.geohash))
+            .model_validate_json(get_observation(client, nearest.geohash).read())
             .root
         )
         print(observation, len(observation))

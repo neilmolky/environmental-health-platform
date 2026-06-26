@@ -17,6 +17,9 @@ dependencies = [
 requires = ["hatchling>=1.18"]
 build-backend = "hatchling.build"
 
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+
 [tool.uv.sources]
 utils = { workspace = true }
 

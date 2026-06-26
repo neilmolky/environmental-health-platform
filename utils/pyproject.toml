@@ -11,6 +11,9 @@ dependencies = [
 [tool.uv]
 package = true
 
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+
 
 [build-system]
 requires = ["hatchling>=1.18"]
