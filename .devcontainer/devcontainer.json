@@ -1,8 +1,7 @@
 {
   "name": "Environmental Health Platform (Workspace)",
   "dockerComposeFile": [
-    "../docker-compose.yml",
-    "docker-compose.dev.yml"
+    "../docker-compose.yml"
   ],
   "service": "backend",
   "workspaceFolder": "/workspace",
