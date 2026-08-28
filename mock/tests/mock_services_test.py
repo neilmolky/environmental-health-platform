@@ -6,10 +6,10 @@ from fastapi import status
 from fastapi.testclient import TestClient
 
 from mock.met_office import (
+    MOCK_API_KEY,
     MOCK_GEOHASH_DB,
     MOCK_OBSERVATION_DB,
     MOCK_STATION_COORDINATES,
-    VALID_API_KEY,
     app,
 )
 
@@ -47,7 +47,7 @@ class TestMetOfficeMockApi:
         """
         Nearest endpoint correctly resolves the closest coordinates via Haversine.
         """
-        headers = {"apikey": VALID_API_KEY}
+        headers = {"apikey": MOCK_API_KEY}
 
         # Pull a real coordinate out of your stateful mock list to target it
         target_coord = MOCK_STATION_COORDINATES[0]
@@ -73,7 +73,7 @@ class TestMetOfficeMockApi:
         """
         Observation endpoint returns a full 48-hour history sequence.
         """
-        headers = {"apikey": VALID_API_KEY}
+        headers = {"apikey": MOCK_API_KEY}
 
         # Target an existing geohash in your initialized DB
         valid_geohash = next(iter(MOCK_OBSERVATION_DB.keys()))
@@ -98,7 +98,7 @@ class TestMetOfficeMockApi:
         """
         Observation endpoint throws a 404 error if an invalid geohash is requested.
         """
-        headers = {"apikey": VALID_API_KEY}
+        headers = {"apikey": MOCK_API_KEY}
         invalid_geohash = "NON_EXISTENT_GEOHASH"
 
         response: httpx.Response = client.get(

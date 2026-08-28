@@ -1,22 +1,21 @@
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from typing import Annotated
 
-from fastapi import FastAPI, HTTPException, Query, Security, status
+from fastapi import Depends, FastAPI, HTTPException, Query, Security, status
 from fastapi.security import APIKeyHeader
-from utils.met_office_models import (
+from pydantic import BaseModel, model_validator
+from utils.models.met_office import (
+    GeoHash,
     LatLon,
     LatLonFactory,
-    MetOfficeLandObservationFactory,
-    MetOfficeLandObservationStation,
-    MetOfficeLandObservationStationFactory,
+    MetOfficeLandObservationStationV1,
+    MetOfficeLandObservationStationV1Factory,
     MetOfficeLandObservationV1,
+    MetOfficeLandObservationV1Factory,
 )
 
-# Define the expected header name (adjust to match what your real API expects)
 API_KEY_HEADER = APIKeyHeader(name="apikey", auto_error=True)
-
-# Mocked valid token for testing
-VALID_API_KEY = "apikey"
+MOCK_API_KEY = "apikey"
 
 
 async def validate_met_office_auth(
@@ -35,103 +34,110 @@ async def validate_met_office_auth(
         HTTPException: With status code 401
             when the provided API key does not match the expected mock key.
     """
-    if api_key != VALID_API_KEY:
+    if api_key != MOCK_API_KEY:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=(
                 "Unauthorized: Mock API key mismatch. "
-                "Expected mock credentials: 'apikey'. "
+                "Use mock credentials: 'apikey'. "
                 "Live Credentials should never be injected into mocks."
             ),
         )
     return api_key
 
 
-app = FastAPI(
-    title="Mock Service for Met Office via Polyfactory",
-    description="A mock API with auto-generated data.",
+met_office_app = FastAPI(
+    title="Met Office Mock Services",
+    description="Entrypoint Met Office mock services",
     version="0.1.0",
     dependencies=[Security(validate_met_office_auth)],
 )
 
-
 # --- 3. STATEFUL RUNTIME DATABASE ---
-MOCK_STATION_COORDINATES: list[LatLon] = LatLonFactory.batch(size=5)
-MOCK_GEOHASH_DB: dict[LatLon, list[MetOfficeLandObservationStation]] = {
-    coord: MetOfficeLandObservationStationFactory.batch(size=1)
+# random seeds should return deterministic results
+now = datetime.now(UTC)
+LatLonFactory.seed_random(1)
+MetOfficeLandObservationStationV1Factory.seed_random(1)
+
+# observation stations have deterministic lat lon only
+# the geohash should be similarly deterministic off the back of this
+# names will change, modeling the names as an scd becomes possible
+MOCK_STATION_COORDINATES: list[LatLon] = [
+    LatLonFactory.build(lat=51.5074, lon=-0.1278),
+    LatLonFactory.build(lat=55.9533, lon=-3.1883),
+    LatLonFactory.build(lat=51.4816, lon=-3.1791),
+    LatLonFactory.build(lat=53.4808, lon=-2.2426),
+    LatLonFactory.build(lat=54.5973, lon=-5.9301),
+]
+MOCK_GEOHASH_DB: dict[GeoHash, MetOfficeLandObservationStationV1] = {
+    coord.calculate_geohash(): MetOfficeLandObservationStationV1Factory.build(
+        geohash=coord.calculate_geohash().geohash
+    )
     for coord in MOCK_STATION_COORDINATES
 }
-MOCK_OBSERVATION_DB: dict[str, list[MetOfficeLandObservationV1]] = {}
+MOCK_OBSERVATION_DB: dict[str, list[MetOfficeLandObservationV1]] = {
+    coord.calculate_geohash().geohash: MetOfficeLandObservationV1Factory.batch(size=24)
+    for coord in MOCK_STATION_COORDINATES
+}
 
-now = datetime.now(UTC)
 
-for record in MOCK_GEOHASH_DB.values():
-    geohash_key = record[0].geohash
-    station_history: list[MetOfficeLandObservationV1] = []
+class CoordinateRequest(BaseModel):
+    max: int = Query(1, ge=1, le=5)
+    lat: float | None = Query(None, description="Latitude coordinate")
+    lon: float | None = Query(None, description="Longitude coordinate")
+    geohash: str | None = Query(None, description="GeoHash string")
 
-    for hour_offset in range(48):
-        # Calculate the exact timestamp for this hour slot (moving backwards)
-        # Offset 0 is "now", offset 47 is "47 hours ago"
-        target_timestamp = now - timedelta(hours=hour_offset)
+    @model_validator(mode="after")
+    def validate_model_get_type(self):
+        self.get_type()
 
-        # Build a single randomized mock payload using Polyfactory,
-        # but explicitly override the 'datetime' field with our calculated sequence!
-        mock_observation = MetOfficeLandObservationFactory.build(
-            datetime=target_timestamp
-        )
-
-        station_history.append(mock_observation)
-
-    MOCK_OBSERVATION_DB[geohash_key] = station_history
+    def get_type(self) -> LatLon | GeoHash:
+        has_latlon = self.lat is not None and self.lon is not None
+        has_geohash = self.geohash is not None
+        if has_latlon and has_geohash:
+            raise ValueError(
+                "User error, coordinates and geohash provided. use one or the other"
+            )
+        elif has_latlon:
+            return LatLon(lat=self.lat, lon=self.lon)
+        elif has_geohash:
+            return GeoHash(geohash=self.geohash)
+        raise ValueError("User error, neigher coordinates or geohash provided.")
 
 
 # --- 4. MOCK API ENDPOINTS ---
 # literal endpoint comes first!
-@app.get(
+@met_office_app.get(
     "/observation-land/1/nearest",
-    response_model=list[MetOfficeLandObservationStation],
+    response_model=list[MetOfficeLandObservationStationV1],
     status_code=status.HTTP_200_OK,
 )
 async def get_nearest(
-    coordinates: Annotated[LatLon, Query()],
-) -> list[MetOfficeLandObservationStation]:
-    """
-    Finds the mock station list nearest to the provided coordinates.
-
-    Parameters:
-        coordinates (LatLon): Query coordinates used to select the nearest mock station.
-
-    Returns:
-        list[MetOfficeLandObservationStation]:
-            The list of observation station records associated with the
-            nearest station's geohash.
-    """
-    key = min(MOCK_STATION_COORDINATES, key=coordinates.haversine_distance)
-    return MOCK_GEOHASH_DB[key]
+    params: Annotated[CoordinateRequest, Depends()],
+) -> list[MetOfficeLandObservationStationV1]:
+    ordered_records = sorted(
+        MOCK_STATION_COORDINATES, key=params.get_type().haversine_distance
+    )
+    return [
+        MOCK_GEOHASH_DB[record.calculate_geohash()]
+        for record in ordered_records[0 : params.max]
+    ]
 
 
-@app.get(
+@met_office_app.get(
     "/observation-land/1/{geohash}",
     response_model=list[MetOfficeLandObservationV1],
     status_code=status.HTTP_200_OK,
 )
-async def get_observation_async(geohash: str) -> list[MetOfficeLandObservationV1]:
-    """
-    Retrieve the list of mock land observations for the specified geohash.
-
-    Parameters:
-        geohash (str): Geohash key identifying the mock observation history to return.
-
-    Returns:
-        list[MetOfficeLandObservation]:
-            The list of stored observations for the given geohash.
-
-    Raises:
-        HTTPException: 404 Not Found if the geohash is not present in the mock database.
-    """
-    if geohash not in MOCK_OBSERVATION_DB:
+async def get_observation_async(
+    params: Annotated[GeoHash, Depends()],
+) -> list[MetOfficeLandObservationV1]:
+    if params.geohash not in MOCK_OBSERVATION_DB:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Geohash '{geohash}' not found in mock database.",
+            detail=f"Geohash '{params.geohash}' not found in mock database. {MOCK_OBSERVATION_DB}",
         )
-    return MOCK_OBSERVATION_DB[geohash]
+    return MOCK_OBSERVATION_DB[params.geohash]
+
+
+print(MOCK_GEOHASH_DB)

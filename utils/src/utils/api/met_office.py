@@ -7,11 +7,9 @@ from httpx import Response
 from pydantic import BaseModel, Field, HttpUrl, SecretStr
 
 from utils.api.base_client import ClientModel
-from utils.models.generic import One, Some
 from utils.models.met_office import (
+    GeoHash,
     LatLon,
-    MetOfficeLandObservationStationV1,
-    MetOfficeLandObservationV1,
 )
 
 MET_OFFICE_LIVE_URL = "https://data.hub.api.metoffice.gov.uk"
@@ -106,7 +104,7 @@ class MetOfficeClientConfig(ClientModel):
 
 
 async def aget_observation(
-    client_session: httpx.AsyncClient, geohash: str, version: Literal["1"] = "1"
+    client_session: httpx.AsyncClient, geohash: GeoHash, version: Literal["1"] = "1"
 ) -> Response:
     """
     Retrieve the raw response body for a land observation identified by `geohash`.
@@ -120,13 +118,15 @@ async def aget_observation(
     Raises:
         httpx.HTTPStatusError: If the HTTP response status is not 2xx.
     """
-    response = await client_session.get(f"/observation-land/{version}/{geohash}")
+    response = await client_session.get(
+        f"/observation-land/{version}/{geohash.geohash}"
+    )
     response.raise_for_status()
     return response
 
 
 def get_observation(
-    client_session: httpx.Client, geohash: str, version: Literal["1"] = "1"
+    client_session: httpx.Client, geohash: GeoHash, version: Literal["1"] = "1"
 ) -> Response:
     """
     Fetches land observation data for the given geohash from the Met Office API.
@@ -137,13 +137,13 @@ def get_observation(
     Returns:
         bytes: Raw response body (JSON) returned by the API.
     """
-    response = client_session.get(f"/observation-land/{version}/{geohash}")
+    response = client_session.get(f"/observation-land/{version}/{geohash.geohash}")
     response.raise_for_status()
     return response
 
 
 async def aget_nearest(
-    client: httpx.AsyncClient, lat: float, lon: float, version: Literal["1"] = "1"
+    client: httpx.AsyncClient, params: LatLon | GeoHash, version: Literal["1"] = "1"
 ) -> Response:
     """
     Fetch the nearest land observation for the specified geographic coordinates.
@@ -158,7 +158,6 @@ async def aget_nearest(
     Raises:
         httpx.HTTPStatusError: If the HTTP response status is not 2xx.
     """
-    params = LatLon.model_validate({"lat": lat, "lon": lon})
     response = await client.get(
         f"/observation-land/{version}/nearest", params=params.model_dump()
     )
@@ -167,7 +166,7 @@ async def aget_nearest(
 
 
 def get_nearest(
-    client: httpx.Client, lat: float, lon: float, version: Literal["1"] = "1"
+    client: httpx.Client, params: LatLon | GeoHash, version: Literal["1"] = "1"
 ) -> Response:
     """
     Fetch the nearest land observation for the specified geographic coordinates.
@@ -182,25 +181,8 @@ def get_nearest(
     Raises:
         httpx.HTTPStatusError: If the HTTP response status is not 2xx.
     """
-    params = LatLon.model_validate({"lat": lat, "lon": lon})
     response = client.get(
         f"/observation-land/{version}/nearest", params=params.model_dump()
     )
     response.raise_for_status()
     return response
-
-
-if __name__ == "__main__":
-    cfg = MetOfficeClientConfig()
-    with cfg.api_client() as client:
-        nearest = (
-            One[MetOfficeLandObservationStationV1]
-            .model_validate_json(get_nearest(client, 50.72, -3.53).read())
-            .item
-        )
-        observation = (
-            Some[MetOfficeLandObservationV1]
-            .model_validate_json(get_observation(client, nearest.geohash).read())
-            .root
-        )
-        print(observation, len(observation))

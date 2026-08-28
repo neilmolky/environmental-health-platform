@@ -3,15 +3,17 @@ from collections.abc import Generator
 import httpx
 import pytest
 from pydantic import ValidationError
-from utils.pydantic_utils import One, Some
-
-from backend.bronze.met_office.client import (
+from utils.api.met_office import (
     MET_OFFICE_USER_URL,
     MetOfficeClientConfig,
-    MetOfficeLandObservationStation,
-    MetOfficeLandObservationV1,
     get_nearest,
     get_observation,
+)
+from utils.models.generic import One, Some
+from utils.models.met_office import (
+    LatLon,
+    MetOfficeLandObservationStationV1,
+    MetOfficeLandObservationV1,
 )
 
 
@@ -43,14 +45,17 @@ class TestMetOfficeClient:
     def test_endpoints_for_schema_drift(self, client: httpx.Client) -> None:
         # test simply runs with the pydantic validation to identify schema drift
         # might raise a connection error or validation error causing the test to fail
+        static = LatLon(lat=50.72, lon=-3.53)
         nearest = (
-            One[MetOfficeLandObservationStation]
-            .model_validate_json(get_nearest(client, 50.72, -3.53))
+            One[MetOfficeLandObservationStationV1]
+            .model_validate_json(get_nearest(client, static).content)
             .item
         )
         observation = (
             Some[MetOfficeLandObservationV1]
-            .model_validate_json(get_observation(client, nearest.geohash))
+            .model_validate_json(
+                get_observation(client, static.calculate_geohash()).content
+            )
             .root
         )
         assert len(observation) > 0

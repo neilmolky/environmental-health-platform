@@ -28,6 +28,7 @@ async def aserve_local():
     this is user configured. When a pipeline is ready to test, add it here"""
     deployments: tuple[RunnerDeployment, ...] = (
         await met_office.land_observation_stations.as_deployment(),
+        await met_office.land_observation.as_deployment(),
     )
     await aserve(*deployments)
 

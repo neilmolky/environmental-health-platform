@@ -1,9 +1,37 @@
 import math
-import random
 from datetime import datetime
 
 import patito as pt
+import pendulum
+from faker import Faker
+from pendulum import duration, interval
+from polyfactory import Use
 from polyfactory.factories.pydantic_factory import ModelFactory
+from pygeohash import geohash
+
+TRUE_BRITISH_FAKES = Faker("en_GB")
+
+
+class GeoHash(pt.Model, frozen=True):
+    """
+    Helper Model, validates geohash values defined by Met Office Api
+
+    frozen to enable hashing
+    """
+
+    geohash: str = pt.Field(
+        pattern=r"[0-9b-hj-km-np-z]{5,6}",
+        description="Valid Base32 geohash at regional (5) or station (6) precision.",
+    )
+
+    def __str__(self) -> str:
+        return f"geohash{self.geohash}"
+
+    def haversine_distance(self, other: "LatLon") -> float:
+        decoded = geohash.decode(self.geohash)
+        return LatLon(lat=decoded.latitude, lon=decoded.longitude).haversine_distance(
+            other
+        )
 
 
 class LatLon(pt.Model, frozen=True):
@@ -20,7 +48,7 @@ class LatLon(pt.Model, frozen=True):
     )
 
     def __str__(self) -> str:
-        return f"{self.lat:+f},{self.lon:+f}"
+        return f"lat{self.lat:.6f}lon{self.lon:.6f}"
 
     @property
     def lat_radians(self) -> float:
@@ -65,35 +93,16 @@ class LatLon(pt.Model, frozen=True):
         earth_radius_km = 6371.0
         return round(c * earth_radius_km, 2)
 
+    def calculate_geohash(self) -> GeoHash:
+        return GeoHash(geohash=geohash.encode(self.lat, self.lon, 6))
+
 
 class LatLonFactory(ModelFactory[LatLon]):
-    __model__ = LatLon
-
-    # Force coordinates to always fall within a bounding box around the UK
-    @classmethod
-    def lat(cls) -> float:
-        """
-        Generate a latitude constrained to a UK bounding box.
-
-        Returns:
-            float: Latitude in degrees between 50.0 and 58.0 inclusive,
-                   rounded to 4 decimal places.
-        """
-        return round(random.uniform(50.0, 58.0), 4)
-
-    @classmethod
-    def lon(cls) -> float:
-        """
-        Generate a longitude within the UK bounding box used by the factory.
-
-        Returns:
-            A longitude in decimal degrees between -7.0 and 1.5,
-            rounded to 4 decimal places.
-        """
-        return round(random.uniform(-7.0, 1.5), 4)
+    lat = Use(ModelFactory.__random__.uniform, 50.0, 58.0)
+    lon = Use(ModelFactory.__random__.uniform, -7.0, 1.5)
 
 
-class MetOfficeLandObservationV1(pt.Model):
+class MetOfficeLandObservationV1(pt.Model, frozen=True):
     datetime: datetime
     """Date of the observation."""
     humidity: int | None
@@ -116,13 +125,55 @@ class MetOfficeLandObservationV1(pt.Model):
     """Wind speed in m/s."""
 
 
+COMPASS_POINTS = (
+    "N",
+    "NNE",
+    "NE",
+    "ENE",
+    "E",
+    "ESE",
+    "SE",
+    "SSE",
+    "S",
+    "SSW",
+    "SW",
+    "WSW",
+    "W",
+    "WNW",
+    "NW",
+    "NNW",
+)
+
+
 class MetOfficeLandObservationV1Factory(ModelFactory[MetOfficeLandObservationV1]):
     __model__ = MetOfficeLandObservationV1
+    __faker__ = TRUE_BRITISH_FAKES
+    humidity = Use(ModelFactory.__random__.randint, 0, 100)
+    mslp = Use(ModelFactory.__random__.randint, 950, 1150)
+    pressure_tendency = Use(ModelFactory.__random__.choice, ("R", "F", "S"))
+    temperature = Use(ModelFactory.__random__.uniform, 0, 35)
+    visibility = Use(ModelFactory.__random__.randint, 50, 5000)
+    weather_code = Use(ModelFactory.__random__.randint, 10, 99)
+    wind_direction = Use(ModelFactory.__random__.choice, COMPASS_POINTS)
+    wind_gust = Use(ModelFactory.__random__.randint, 0, 10)
+    wind_speed = Use(ModelFactory.__random__.uniform, 0, 90)
+
+    @classmethod
+    def batch(cls, size: int, **kwargs) -> list[MetOfficeLandObservationV1]:
+        """the batch method will create incrementing datetimes in 3h intervals.
+
+        Params:
+            size: the number of intervals to generate
+        """
+        start = kwargs.pop("datetime", pendulum.now("UTC"))
+        end = start - duration(hours=3 * size)
+        return [
+            cls.build(datetime=dt, **kwargs)
+            for dt in interval(start, end).range("hours", 3)
+        ]
 
 
-class MetOfficeLandObservationStationV1(pt.Model):
-    geohash: str
-    """Geohash of the observation location"""
+class MetOfficeLandObservationStationV1(GeoHash, frozen=True):
     area: str
     """Location area"""
     region: str | None
@@ -133,7 +184,14 @@ class MetOfficeLandObservationStationV1(pt.Model):
     """Olson time zone string of location"""
 
 
-class MetOfficeLandObservationStationFactory(
+class MetOfficeLandObservationStationV1Factory(
     ModelFactory[MetOfficeLandObservationStationV1]
 ):
-    __model__ = MetOfficeLandObservationStationV1
+    area = Use(TRUE_BRITISH_FAKES.city)
+    region = Use(TRUE_BRITISH_FAKES.county)
+    country = Use(TRUE_BRITISH_FAKES.country)
+    olson_time_zone = Use(TRUE_BRITISH_FAKES.timezone)
+
+
+if __name__ == "__main__":
+    print(MetOfficeLandObservationV1Factory.batch(5))
