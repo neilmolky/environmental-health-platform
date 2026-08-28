@@ -1,24 +1,21 @@
 {
   "name": "Environmental Health Platform (Workspace)",
   "dockerComposeFile": [
-    "../docker-compose.yml"
+    "../docker-compose.dev.yml"
   ],
   "service": "backend",
+  "shutdownAction": "stopCompose",
   "workspaceFolder": "/workspace",
   "remoteUser": "dev",
-  "postCreateCommand": "uv sync --frozen --all-packages",
   "forwardPorts": [
     "api:8000",
     "mock:8001",
     "prefect-server:4200",
-    "frontend:2718"
+    "frontend:2718",
+    "minio:9000",
+    "minio:9001"
   ],
-  "portsAttributes": {
-    "8000": { "label": "FastAPI Core Analytics Engine", "onAutoForward": "ignore", "requireLocalPort": true },
-    "8001": { "label": "Mock UK Met Office API", "onAutoForward": "ignore", "requireLocalPort": true },
-    "4200": { "label": "Prefect Dashboard UI", "onAutoForward": "ignore", "requireLocalPort": true },
-    "2718": { "label": "Marimo Interactive Dashboard", "onAutoForward": "ignore", "requireLocalPort": true }
-  },
+  "postStartCommand": "uv sync --frozen --all-packages",
   "customizations": {
     "vscode": {
       "extensions": [

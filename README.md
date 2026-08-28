@@ -27,6 +27,11 @@ docker compose up
     - localhost:4200 -> The prefect server orchestrating data pipelines
     - localhost:2718 -> The marimo interactive analysis platform
 
+5. **Locally deployed prefect flows**: after the environment is setup, the user can test orchestration and deployments with `uv run dev`. this command will:
+    - start a worker thread locally
+    - serve the deployments defined in backend.flows.deploy
+    - allow developers to reload deploments following code changes
+
 *See also: CONTRIBUTING.md explains how to set up a dev-container if you want to add features and test them locally*
 
 

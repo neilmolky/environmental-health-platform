@@ -1,0 +1,277 @@
+volumes:
+  # Explicitly name the volumes to prevent docker compose using underscores
+  # underscores are not valid under under RFC 952 and RFC 1123
+  ehp-aws-data:
+    name: ehp-aws-data
+  ehp-azure-data:
+    name: ehp-azure-data
+  ehp-prefect-postgres:
+    name: ehp-prefect-postgres
+  ehp-prefect-redis:
+    name: ehp-prefect-redis
+  dev-uv-cache:
+    name: dev-uv-cache  
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      # PARAMETERISATION: Update this single host path to change it everywhere
+      device: ./.devcontainer/.cache/uv
+
+networks:
+  ehp-group-mesh:
+    driver: bridge
+    name: ehp-group-mesh
+    attachable: true
+  ehp-blob-access:
+    driver: bridge
+    name: ehp-blob-access
+    attachable: true
+  ehp-orchestration-mesh:
+    driver: bridge
+    name: ehp-orchestration-mesh
+    attachable: true
+
+# Storage Env Variables required only by backend and api services
+x-aws-settings: &aws-settings
+  AWS_ENDPOINT_URL: ${AWS_ENDPOINT_URL:-http://minio:9000}
+  AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-dev}
+  AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-password}
+  AWS_ALLOW_HTTP: true
+
+x-azure-settings: &azure-settings
+  AZURE_STORAGE_ENDPOINT: ${AZURE_STORAGE_ENDPOINT:-http://azurite:10000/dev}
+  AZURE_STORAGE_USE_EMULATOR: ${AZURE_STORAGE_USE_EMULATOR:-true}
+  AZURE_STORAGE_ACCOUNT_KEY: ${AZURE_STORAGE_ACCOUNT_KEY:-dev}
+  AZURE_STORAGE_ACCOUNT_NAME: ${AZURE_STORAGE_ACCOUNT_NAME:-password}
+
+x-storage-env: &storage-env
+  <<: 
+    - *aws-settings 
+    - *azure-settings
+  STORAGE__BACKEND: ${STORAGE__BACKEND:-aws}
+
+x-uv-env: &uv-env
+  UV_PROJECT_ENVIRONMENT: /workspace/.devcontainer/.venv
+  VIRTUAL_ENV: /workspace/.devcontainer/.venv
+  UV_CACHE_DIR: /home/dev/.cache/uv
+  UV_LINK_MODE: copy
+  PYTHONUNBUFFERED: 1
+
+x-client-env: &client-env
+  MET_OFFICE__CLIENT_TYPE: ${MET_OFFICE__CLIENT_TYPE:-mock}
+  MET_OFFICE__MOCK_URL: ${MET_OFFICE__MOCK_URL:-http://mock:8001/met-office}
+  MET_OFFICE__LIVE_SECRET: ${MET_OFFICE__LIVE_SECRET}
+
+x-prefect-internal-env: &prefect-internal-env
+  PREFECT_API_DATABASE_CONNECTION_URL: postgresql+asyncpg://prefect:prefect@prefect-db:5432/prefect
+  PREFECT_MESSAGING_BROKER: prefect_redis.messaging
+  PREFECT_MESSAGING_CACHE: prefect_redis.messaging
+  PREFECT_REDIS_MESSAGING_HOST: prefect-broker
+  PREFECT_REDIS_MESSAGING_PORT: 6379
+  PREFECT_REDIS_MESSAGING_DB: 0
+
+x-prefect-env: &prefect-env
+  PREFECT_SERVER_API_HOST: 0.0.0.0
+  PREFECT_SERVER_UI_API_URL: http://localhost:4200/api
+
+services:
+  # --- BACKEND CORE / DEV CONTAINER HOST ---
+  backend:
+    # using a non-root user prevents issues with file ownership on the local machine
+    # without this, it's possible that using a dev container will make the venv and other code files unuseable unless run as root
+    user: dev
+    build:
+      context: .
+      dockerfile: backend/Dockerfile.dev
+    volumes:
+      - .:/workspace
+      # PROTECT THE VENV: Force Docker to use the internal venv
+      - /workspace/.venv
+      # CACHE the pypy downloads
+      - dev-uv-cache:/home/dev/.cache/uv
+    working_dir: /workspace
+    networks:
+      - ehp-group-mesh
+      - ehp-blob-access
+    depends_on:
+      prefect-server:
+        condition: service_healthy
+    environment:
+      <<: [*storage-env, *uv-env, *client-env, *prefect-env]
+      PREFECT_API_URL: http://prefect-server:4200/api
+    command: sleep infinity
+
+  # --- FASTAPI SERVER ---
+  api:
+    build:
+      context: .
+      dockerfile: api/Dockerfile.dev
+    user: dev
+    networks:
+      - ehp-group-mesh
+      - ehp-blob-access
+    volumes:
+      - .:/workspace
+      - dev-uv-cache:/home/dev/.cache/uv
+    working_dir: /workspace
+    depends_on:
+      prefect-server:
+        condition: service_healthy
+    environment:
+      <<: [*storage-env, *uv-env, *prefect-env]
+    command: uv run uvicorn api:app --host 0.0.0.0 --port 8000 --reload
+
+  # --- API SIMULATOR ---
+  mock:
+    build:
+      context: .
+      dockerfile: mock/Dockerfile.dev
+    user: dev
+    networks:
+      - ehp-group-mesh
+    volumes:
+      - .:/workspace
+      - dev-uv-cache:/home/dev/.cache/uv
+    environment:
+      <<: *uv-env
+    working_dir: /workspace
+    command: uv run uvicorn mock.main:app --host 0.0.0.0 --port 8001 --reload
+
+  # --- MARIMO USER INTERFACE ---
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile.dev
+    user: dev
+    networks:
+      - ehp-group-mesh
+    volumes:
+      - .:/workspace
+      - dev-uv-cache:/home/dev/.cache/uv
+    working_dir: /workspace
+    environment:
+      <<: *uv-env
+    command: uv run marimo edit frontend/src/frontend/health_analysis.py --host 0.0.0.0 --port 2718 --no-token
+
+  # --- STORAGE EMULATORS ---
+  minio:
+    image: minio/minio:latest
+    networks:
+      - ehp-blob-access
+    volumes:
+      - ehp-aws-data:/data
+    environment:
+      MINIO_ROOT_USER: dev
+      MINIO_ROOT_PASSWORD: password
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 3s
+      timeout: 3s
+      retries: 5
+
+  minio-init:  # initializes the buckets on startup
+    image: minio/mc:latest
+    networks:
+      - ehp-blob-access
+    depends_on:
+      minio:
+        condition: service_healthy
+    environment:
+      <<: *aws-settings
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set ehpminio http://minio:9000 dev password;
+      mc mb ehpminio/bronze || true;
+      mc mb ehpminio/silver || true;
+      mc mb ehpminio/gold || true;
+      exit 0;
+      "
+
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite:latest
+    networks:
+      - ehp-blob-access
+    volumes:
+      - ehp-azure-data:/data
+    # custom entrypoint base64 encodes the dummy credentials used as consistent defaults
+    entrypoint: >
+      /bin/sh -c "
+      B64_KEY=\$(echo -n dev | base64);
+      export AZURITE_ACCOUNTS=\"dev:\$B64_KEY\";
+      exec azurite-blob --blobHost 0.0.0.0 --blobPort 10000 --location /data --skipApiVersionCheck;
+      "
+
+
+  # --- ORCHESTRATION LAYER ---
+  prefect-db:
+    image: postgres:14
+    environment:
+      POSTGRES_USER: prefect
+      POSTGRES_PASSWORD: prefect
+      POSTGRES_DB: prefect
+    volumes:
+      - ehp-prefect-postgres:/var/lib/postgresql/data
+    networks:
+      - ehp-orchestration-mesh
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U prefect"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  prefect-broker:
+    image: redis:7
+    volumes:
+      - ehp-prefect-redis:/data
+    networks:
+      - ehp-orchestration-mesh
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  prefect-server:
+    image: prefecthq/prefect:3-latest
+    depends_on:
+      prefect-db:
+        condition: service_healthy
+      prefect-broker:
+        condition: service_healthy
+    environment:
+      <<: [*prefect-env, *prefect-internal-env]
+    command: prefect server start --no-services
+    networks:
+        - ehp-orchestration-mesh
+        - ehp-group-mesh
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request as u; u.urlopen('http://localhost:4200/api/health', timeout=1)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  prefect-services:
+    image: prefecthq/prefect:3-latest
+    depends_on:
+      prefect-server:
+        condition: service_healthy
+    networks:
+      - ehp-orchestration-mesh
+    environment:
+      <<: *prefect-internal-env
+    command: prefect server services start
+
+  prefect-worker:
+    image: prefecthq/prefect:3-latest
+    depends_on:
+      prefect-server:
+        condition: service_healthy
+    networks:
+      - ehp-orchestration-mesh
+    environment:
+      PREFECT_API_URL: http://prefect-server:4200/api
+    command: prefect worker start --pool local-pool
+    restart: on-failure

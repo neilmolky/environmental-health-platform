@@ -22,6 +22,10 @@ dependencies = [
     "utils",
 ]
 
+[project.scripts]
+dev = "backend.flows.deploy:serve_local"
+prod = "backend.flows.deploy:deploy_prod"
+
 [build-system]
 requires = ["hatchling>=1.18"]
 build-backend = "hatchling.build"
